@@ -6,6 +6,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/v1': 'http://localhost:8000',
+      '/prompt-refinement': 'http://localhost:8000',
     },
   },
 })

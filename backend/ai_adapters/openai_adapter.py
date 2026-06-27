@@ -1,3 +1,4 @@
+import json
 import os
 from openai import AsyncOpenAI
 from .base import AIAdapter
@@ -16,3 +17,48 @@ class OpenAIAdapter(AIAdapter):
             messages=[{"role": "user", "content": message}],
         )
         return response.choices[0].message.content
+
+    async def chat_with_tools(
+        self,
+        system: str,
+        messages: list[dict],
+        tools: list[dict],
+    ) -> tuple[str | None, list[dict]]:
+        """
+        Single OpenAI turn with function calling.
+        Prepends system as a system message; tools are converted from Anthropic to OpenAI format.
+        """
+        openai_messages = [{"role": "system", "content": system}, *messages]
+        openai_tools = [_anthropic_to_openai_tool(t) for t in tools]
+
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            max_tokens=max(self.max_tokens, 4096),
+            messages=openai_messages,
+            tools=openai_tools,
+            tool_choice="auto",
+        )
+
+        message = response.choices[0].message
+        final_text = message.content or None
+        tool_calls = []
+        for tc in (message.tool_calls or []):
+            tool_calls.append({
+                "id": tc.id,
+                "name": tc.function.name,
+                "input": json.loads(tc.function.arguments),
+            })
+
+        return final_text if not tool_calls else None, tool_calls
+
+
+def _anthropic_to_openai_tool(tool: dict) -> dict:
+    """Convert Anthropic tool schema to OpenAI function format."""
+    return {
+        "type": "function",
+        "function": {
+            "name": tool["name"],
+            "description": tool.get("description", ""),
+            "parameters": tool["input_schema"],
+        },
+    }
