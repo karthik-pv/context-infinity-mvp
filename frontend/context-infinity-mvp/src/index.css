@@ -1,0 +1,280 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #0c1020;
+  --surface:      #111827;
+  --surface2:     #1e2a3a;
+  --border-folder: #2e3a52;
+  --border-file:   #3b5278;
+  --border-card:   #334260;
+  --text:         #e2e6ff;
+  --text-dim:     #7a80a8;
+  --accent:       #6c63ff;
+  --accent2:      #00d4ff;
+  --teal:         #56cfb2;
+  --blue:         #6c9eff;
+  --purple:       #a78bfa;
+  --confidence-high: #34d399;
+  --confidence-med:  #fbbf24;
+  --confidence-low:  #f87171;
+  --drop-glow:    rgba(86, 207, 178, 0.18);
+  --drop-border:  #56cfb2;
+  --radius:       8px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ── App shell ──────────────────────────────────────────────────────── */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(23,28,46,0.98), rgba(17,24,38,0.95));
+  border-bottom: 1px solid var(--border-folder);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo-mark {
+  font-size: 18px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.app-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+/* ── Canvas ─────────────────────────────────────────────────────────── */
+.tree-canvas {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* ── Folder node ────────────────────────────────────────────────────── */
+.folder-node {
+  border: 1.5px solid var(--border-folder);
+  border-radius: 10px;
+  background: rgba(17, 24, 42, 0.7);
+  min-width: 260px;
+  flex: 1 1 260px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.folder-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: var(--blue);
+  background: rgba(108, 158, 255, 0.06);
+  border-bottom: 1px solid var(--border-folder);
+  font-family: var(--mono);
+}
+
+.folder-icon { font-size: 13px; }
+
+/* Drop zone at the folder's own level (direct folder nodes) */
+.folder-own-area {
+  min-height: 44px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px dashed rgba(46, 58, 82, 0.6);
+  transition: background 0.15s;
+}
+
+.folder-own-area.drop-over {
+  background: var(--drop-glow);
+  border-color: var(--drop-border);
+}
+
+/* Sub-items area */
+.folder-children {
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ── File node ──────────────────────────────────────────────────────── */
+.file-node {
+  border: 1px solid var(--border-file);
+  border-radius: var(--radius);
+  background: rgba(30, 42, 58, 0.6);
+  min-width: 220px;
+  flex: 1 1 220px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.file-node.drop-over {
+  border-color: var(--drop-border);
+  background: rgba(30, 42, 58, 0.85);
+}
+
+.file-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--teal);
+  background: rgba(86, 207, 178, 0.05);
+  border-bottom: 1px solid var(--border-file);
+  font-family: var(--mono);
+}
+
+.file-icon { font-size: 12px; }
+
+.file-drop-area {
+  min-height: 40px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* shared drop-area base */
+.node-drop-area {
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.file-node.drop-over .file-drop-area {
+  background: var(--drop-glow);
+}
+
+/* ── Empty hint ─────────────────────────────────────────────────────── */
+.empty-hint {
+  font-size: 10px;
+  color: rgba(122, 128, 168, 0.4);
+  letter-spacing: 0.4px;
+  align-self: center;
+  padding: 4px 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── Decision card ──────────────────────────────────────────────────── */
+.decision-card {
+  background: var(--surface2);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius);
+  padding: 9px 11px;
+  cursor: grab;
+  user-select: none;
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+  width: 100%;
+}
+
+.decision-card:hover {
+  border-color: var(--purple);
+  box-shadow: 0 2px 12px rgba(167, 139, 250, 0.18);
+  transform: translateY(-1px);
+}
+
+.decision-card:active {
+  cursor: grabbing;
+}
+
+.drag-overlay {
+  opacity: 0.9;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 0 1.5px var(--purple);
+  transform: rotate(1.5deg);
+  pointer-events: none;
+  width: 240px;
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.card-confidence {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--mono);
+  flex-shrink: 0;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.05);
+}
+
+.card-decision {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  font-size: 9px;
+  font-family: var(--mono);
+  letter-spacing: 0.4px;
+  color: var(--accent2);
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
