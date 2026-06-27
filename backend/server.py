@@ -3,6 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from db_layer.postgres_access import get_decisions, get_artifact_paths, get_decision_by_id, update_decision_by_id
+from ai_adapters.factory import get_adapter
 
 
 class DecisionUpdate(BaseModel):
@@ -57,5 +58,7 @@ def decision_update(decision_id: str, body: DecisionUpdate):
 
 
 @app.post("/v1/chat")
-def chat(body: ChatMessage):
-    return {"reply": f"[stub] Received: {body.message}"}
+async def chat(body: ChatMessage):
+    adapter = get_adapter()
+    reply = await adapter.chat(body.message)
+    return {"reply": reply}
