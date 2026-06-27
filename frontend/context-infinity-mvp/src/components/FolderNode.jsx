@@ -2,7 +2,7 @@ import { useDroppable } from '@dnd-kit/core';
 import DecisionCard from './DecisionCard';
 import FileNode from './FileNode';
 
-export default function FolderNode({ folder, nodesByPath }) {
+export default function FolderNode({ folder, nodesByPath, onNodeClick }) {
   const { isOver, setNodeRef } = useDroppable({ id: folder.path });
   const ownNodes = nodesByPath[folder.path] || [];
 
@@ -19,7 +19,7 @@ export default function FolderNode({ folder, nodesByPath }) {
           <span className="empty-hint">Drop a node here</span>
         )}
         {ownNodes.map(n => (
-          <DecisionCard key={n.id} node={n} />
+          <DecisionCard key={n.id} node={n} onNodeClick={onNodeClick} />
         ))}
       </div>
 
@@ -32,6 +32,7 @@ export default function FolderNode({ folder, nodesByPath }) {
                 key={child.path}
                 folder={child}
                 nodesByPath={nodesByPath}
+                onNodeClick={onNodeClick}
               />
             ) : (
               <FileNode
@@ -39,6 +40,7 @@ export default function FolderNode({ folder, nodesByPath }) {
                 path={child.path}
                 name={child.name}
                 nodes={nodesByPath[child.path] || []}
+                onNodeClick={onNodeClick}
               />
             )
           )}

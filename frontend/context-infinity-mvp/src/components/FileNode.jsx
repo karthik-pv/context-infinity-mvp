@@ -1,7 +1,7 @@
 import { useDroppable } from '@dnd-kit/core';
 import DecisionCard from './DecisionCard';
 
-export default function FileNode({ path, name, nodes }) {
+export default function FileNode({ path, name, nodes, onNodeClick }) {
   const { isOver, setNodeRef } = useDroppable({ id: path });
 
   return (
@@ -15,7 +15,7 @@ export default function FileNode({ path, name, nodes }) {
           <span className="empty-hint">Drop a node here</span>
         )}
         {nodes.map(n => (
-          <DecisionCard key={n.id} node={n} />
+          <DecisionCard key={n.id} node={n} onNodeClick={onNodeClick} />
         ))}
       </div>
     </div>

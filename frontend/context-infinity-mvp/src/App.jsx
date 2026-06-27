@@ -4,6 +4,7 @@ import { fetchDecisions } from './data/api';
 import { buildTree } from './data/treeStructure';
 import FolderNode from './components/FolderNode';
 import DecisionCard from './components/DecisionCard';
+import DecisionModal from './components/DecisionModal';
 
 export default function App() {
   const [nodes, setNodes] = useState([]);
@@ -12,6 +13,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeId, setActiveId] = useState(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
@@ -91,7 +93,12 @@ export default function App() {
 
         <main className="tree-canvas">
           {treeStructure.map(folder => (
-            <FolderNode key={folder.path} folder={folder} nodesByPath={nodesByPath} />
+            <FolderNode
+              key={folder.path}
+              folder={folder}
+              nodesByPath={nodesByPath}
+              onNodeClick={setSelectedNodeId}
+            />
           ))}
         </main>
       </div>
@@ -99,6 +106,10 @@ export default function App() {
       <DragOverlay dropAnimation={null}>
         {activeNode ? <DecisionCard node={activeNode} isDragOverlay /> : null}
       </DragOverlay>
+
+      {selectedNodeId && (
+        <DecisionModal nodeId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />
+      )}
     </DndContext>
   );
 }

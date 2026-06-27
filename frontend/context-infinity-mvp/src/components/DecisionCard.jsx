@@ -7,7 +7,7 @@ function confidenceColor(c) {
   return 'var(--confidence-low)';
 }
 
-export default function DecisionCard({ node, isDragOverlay = false }) {
+export default function DecisionCard({ node, isDragOverlay = false, onNodeClick }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: node.id,
     disabled: isDragOverlay,
@@ -26,6 +26,7 @@ export default function DecisionCard({ node, isDragOverlay = false }) {
       {...listeners}
       {...attributes}
       className={`decision-card${isDragOverlay ? ' drag-overlay' : ''}`}
+      onClick={() => !isDragging && onNodeClick?.(node.id)}
     >
       <div className="card-header">
         <span className="card-title">{node.title}</span>
