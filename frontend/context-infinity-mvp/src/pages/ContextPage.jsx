@@ -1,0 +1,93 @@
+import { useState, useMemo, useEffect } from 'react';
+import { DndContext, DragOverlay, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { fetchDecisions } from '../data/api';
+import { buildTree } from '../data/treeStructure';
+import FolderNode from '../components/FolderNode';
+import DecisionCard from '../components/DecisionCard';
+import DecisionModal from '../components/DecisionModal';
+
+export default function ContextPage() {
+  const [nodes, setNodes] = useState([]);
+  const [nodeLocations, setNodeLocations] = useState({});
+  const [treeStructure, setTreeStructure] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+  const [selectedNodeId, setSelectedNodeId] = useState(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
+  );
+
+  useEffect(() => {
+    fetchDecisions()
+      .then(({ nodes: apiNodes, paths }) => {
+        const locations = {};
+        apiNodes.forEach(n => { locations[n.id] = n.location; });
+        setNodes(apiNodes);
+        setNodeLocations(locations);
+        setTreeStructure(buildTree(paths));
+        setLoading(false);
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
+      });
+  }, []);
+
+  const nodesByPath = useMemo(() => {
+    const map = {};
+    nodes.forEach(n => {
+      const path = nodeLocations[n.id];
+      if (!map[path]) map[path] = [];
+      map[path].push(n);
+    });
+    return map;
+  }, [nodes, nodeLocations]);
+
+  const activeNode = activeId ? nodes.find(n => n.id === activeId) : null;
+
+  function handleDragStart({ active }) {
+    setActiveId(active.id);
+  }
+
+  function handleDragEnd({ active, over }) {
+    setActiveId(null);
+    if (over && over.id !== nodeLocations[active.id]) {
+      setNodeLocations(prev => ({ ...prev, [active.id]: over.id }));
+    }
+  }
+
+  if (loading) return (
+    <main className="tree-canvas" style={{ padding: '2rem', opacity: 0.5 }}>Loading…</main>
+  );
+
+  if (error) return (
+    <main className="tree-canvas" style={{ padding: '2rem', color: 'var(--confidence-low)' }}>
+      Error: {error}
+    </main>
+  );
+
+  return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+      <main className="tree-canvas">
+        {treeStructure.map(folder => (
+          <FolderNode
+            key={folder.path}
+            folder={folder}
+            nodesByPath={nodesByPath}
+            onNodeClick={setSelectedNodeId}
+          />
+        ))}
+      </main>
+
+      <DragOverlay dropAnimation={null}>
+        {activeNode ? <DecisionCard node={activeNode} isDragOverlay /> : null}
+      </DragOverlay>
+
+      {selectedNodeId && (
+        <DecisionModal nodeId={selectedNodeId} onClose={() => setSelectedNodeId(null)} />
+      )}
+    </DndContext>
+  );
+}

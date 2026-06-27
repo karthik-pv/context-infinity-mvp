@@ -13,6 +13,10 @@ class DecisionUpdate(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     tags: list[str] = []
 
+
+class ChatMessage(BaseModel):
+    message: str
+
 app = FastAPI()
 
 app.add_middleware(
@@ -50,3 +54,8 @@ def decision_update(decision_id: str, body: DecisionUpdate):
     if node is None:
         raise HTTPException(status_code=404, detail="Not found")
     return node
+
+
+@app.post("/v1/chat")
+def chat(body: ChatMessage):
+    return {"reply": f"[stub] Received: {body.message}"}
