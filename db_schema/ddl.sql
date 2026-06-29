@@ -91,3 +91,42 @@ ON decision_nodes USING GIN(tags);
 CREATE UNIQUE INDEX one_display_anchor_per_decision
 ON decision_artifacts(decision_id)
 WHERE is_display_anchor = TRUE;
+
+
+-- =====================================================
+-- TABLE: planning_sessions
+-- Persisted planning session state (chat, plan, nodes, folder structure)
+-- One row per session, upserted on every state change
+-- =====================================================
+CREATE TABLE planning_sessions (
+    session_id TEXT PRIMARY KEY,
+
+    status TEXT NOT NULL DEFAULT 'planning' CHECK (
+        status IN ('planning', 'finalized')
+    ),
+
+    -- Full chat history as array of {role, content} objects
+    chat_history JSONB NOT NULL DEFAULT '[]',
+
+    -- Implementation plan: {section_id: {content, target_file}}
+    implementation_plan JSONB NOT NULL DEFAULT '{}',
+
+    -- Inferred decision nodes (session-scoped, not yet finalized)
+    inferred_nodes JSONB NOT NULL DEFAULT '[]',
+
+    -- Compact sorted list of file/folder paths derived from the plan
+    folder_structure TEXT[] NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+
+-- =====================================================
+-- INDEXES: planning_sessions
+-- =====================================================
+CREATE INDEX idx_planning_sessions_status
+ON planning_sessions(status);
+
+CREATE INDEX idx_planning_sessions_updated
+ON planning_sessions(updated_at DESC);

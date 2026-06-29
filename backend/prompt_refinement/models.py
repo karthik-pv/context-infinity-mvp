@@ -19,4 +19,5 @@ class PlanningSession(BaseModel):
     chat_history: list[ChatEntry] = []
     implementation_plan: dict[str, dict] = Field(default_factory=dict)
     inferred_nodes: list[dict] = []
+    folder_structure: list[str] = []
     status: Literal["planning", "finalized"] = "planning"

@@ -115,6 +115,9 @@ CHAT HISTORY:
 CURRENT IMPLEMENTATION PLAN:
 {implementation_plan}
 
+CURRENT FOLDER STRUCTURE:
+{folder_structure}
+
 CURRENT DECISION NODES:
 {inferred_nodes}
 
@@ -154,6 +157,12 @@ def format_nodes(inferred_nodes: list) -> str:
     if not inferred_nodes:
         return "(none yet)"
     return json.dumps(inferred_nodes, indent=2)
+
+
+def format_folder_structure(folder_structure: list) -> str:
+    if not folder_structure:
+        return "(empty — no files planned yet)"
+    return "\n".join(folder_structure)
 
 
 def format_historical(historical_decisions: list) -> str:

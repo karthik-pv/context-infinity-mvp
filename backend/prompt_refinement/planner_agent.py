@@ -20,7 +20,9 @@ from .prompt_builder import (
     format_plan,
     format_nodes,
     format_historical,
+    format_folder_structure,
 )
+from .prompt_logger import log_prompt
 from .tool_executor import TOOL_SCHEMAS, execute_tool
 from ai_adapters.factory import get_adapter
 
@@ -59,8 +61,12 @@ async def run_planner_agent(session_id: str, user_message: str) -> str:
         chat_history=format_chat_history(session.chat_history),
         implementation_plan=format_plan(session.implementation_plan),
         inferred_nodes=format_nodes(session.inferred_nodes),
+        folder_structure=format_folder_structure(session.folder_structure),
         historical_decisions=format_historical(historical),
     )
+
+    # Log the prompt and retrieved decisions to backend/logs/
+    log_prompt(session_id, system_prompt, historical)
 
     # Step 4: agent loop
     # Each adapter.chat_with_tools call is a single LLM turn.

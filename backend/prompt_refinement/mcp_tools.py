@@ -11,6 +11,20 @@ from .session_store import get_session, save_session
 from .merger import merge_decision_nodes
 from .retrieval import retrieve_relevant_context
 from .artifact_resolver import resolve_artifact
+from .models import PlanningSession
+
+
+# ── Folder structure helper ──────────────────────────────────────────────────
+
+def _recompute_folder_structure(session: PlanningSession) -> None:
+    """Rebuild the compact folder_structure list from all plan target_file values."""
+    paths = set()
+    for section in session.implementation_plan.values():
+        if isinstance(section, dict):
+            target = section.get("target_file", "")
+            if target and target != ".":
+                paths.add(target)
+    session.folder_structure = sorted(paths)
 
 
 # ── Plan tools ───────────────────────────────────────────────────────────────
@@ -20,6 +34,7 @@ def add_plan_section(session_id: str, section_id: str, content: str, target_file
     session = _require_session(session_id)
     action = "updated" if section_id in session.implementation_plan else "created"
     session.implementation_plan[section_id] = {"content": content, "target_file": target_file}
+    _recompute_folder_structure(session)
     save_session(session)
     return {"ok": True, "section_id": section_id, "action": action, "target_file": target_file}
 
@@ -36,6 +51,7 @@ def update_plan_section(session_id: str, section_id: str, content: str, target_f
     section["content"] = content
     if target_file is not None:
         section["target_file"] = target_file
+    _recompute_folder_structure(session)
     save_session(session)
     return {"ok": True, "section_id": section_id, "action": "updated"}
 
@@ -44,6 +60,7 @@ def delete_plan_section(session_id: str, section_id: str) -> dict:
     """Remove a section from the implementation plan."""
     session = _require_session(session_id)
     session.implementation_plan.pop(section_id, None)
+    _recompute_folder_structure(session)
     save_session(session)
     return {"ok": True, "section_id": section_id, "action": "deleted"}
 
