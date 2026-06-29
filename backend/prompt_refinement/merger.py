@@ -47,6 +47,8 @@ def merge_decision_nodes(existing: list[dict], new_nodes: list[dict]) -> list[di
                     seen_tradeoffs.add(t)
             ex["tradeoffs"] = merged_tradeoffs
 
+            if node.get("target_file"):
+                ex["target_file"] = node["target_file"]
             if node.get("artifact_ref"):
                 ex["artifact_ref"] = node["artifact_ref"]
                 ex["artifact_type"] = node.get("artifact_type", "module")

@@ -1263,6 +1263,13 @@ html, body {
   color: var(--accent2);
 }
 
+.plan-section-file {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
 .plan-section-content {
   font-size: 12px;
   line-height: 1.55;

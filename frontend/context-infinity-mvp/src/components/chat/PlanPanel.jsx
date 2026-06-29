@@ -15,12 +15,17 @@ export default function PlanPanel({ plan, nodes }) {
               Plan sections will appear as you chat.
             </div>
           ) : (
-            Object.entries(plan).map(([key, value]) => (
-              <div key={key} className="plan-section">
-                <div className="plan-section-id">{key.replace(/_/g, ' ')}</div>
-                <div className="plan-section-content">{value}</div>
-              </div>
-            ))
+            Object.entries(plan).map(([key, value]) => {
+              const content = typeof value === 'object' ? value.content : value;
+              const targetFile = typeof value === 'object' ? value.target_file : null;
+              return (
+                <div key={key} className="plan-section">
+                  <div className="plan-section-id">{key.replace(/_/g, ' ')}</div>
+                  {targetFile && <div className="plan-section-file">{targetFile}</div>}
+                  <div className="plan-section-content">{content}</div>
+                </div>
+              );
+            })
           )}
         </div>
       </div>

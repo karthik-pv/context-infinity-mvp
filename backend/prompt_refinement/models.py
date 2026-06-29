@@ -17,6 +17,6 @@ class ChatEntry(BaseModel):
 class PlanningSession(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid4()))
     chat_history: list[ChatEntry] = []
-    implementation_plan: dict[str, str] = Field(default_factory=dict)
+    implementation_plan: dict[str, dict] = Field(default_factory=dict)
     inferred_nodes: list[dict] = []
     status: Literal["planning", "finalized"] = "planning"

@@ -15,24 +15,27 @@ from .artifact_resolver import resolve_artifact
 
 # ── Plan tools ───────────────────────────────────────────────────────────────
 
-def add_plan_section(session_id: str, section_id: str, content: str) -> dict:
-    """Create or overwrite a plan section."""
+def add_plan_section(session_id: str, section_id: str, content: str, target_file: str = ".") -> dict:
+    """Create or overwrite a plan action point with its target file."""
     session = _require_session(session_id)
     action = "updated" if section_id in session.implementation_plan else "created"
-    session.implementation_plan[section_id] = content
+    session.implementation_plan[section_id] = {"content": content, "target_file": target_file}
     save_session(session)
-    return {"ok": True, "section_id": section_id, "action": action}
+    return {"ok": True, "section_id": section_id, "action": action, "target_file": target_file}
 
 
-def update_plan_section(session_id: str, section_id: str, content: str) -> dict:
-    """Update an existing plan section (error if it does not exist)."""
+def update_plan_section(session_id: str, section_id: str, content: str, target_file: str | None = None) -> dict:
+    """Update an existing plan action point (error if it does not exist)."""
     session = _require_session(session_id)
     if section_id not in session.implementation_plan:
         return {
             "ok": False,
             "error": f"Section '{section_id}' does not exist. Use add_plan_section to create it.",
         }
-    session.implementation_plan[section_id] = content
+    section = session.implementation_plan[section_id]
+    section["content"] = content
+    if target_file is not None:
+        section["target_file"] = target_file
     save_session(session)
     return {"ok": True, "section_id": section_id, "action": "updated"}
 
@@ -57,6 +60,7 @@ def add_decision_node(
     session_id: str,
     title: str,
     decision: str,
+    target_file: str = ".",
     rationale: str = "",
     tradeoffs: list | None = None,
     confidence: float = 0.8,
@@ -64,7 +68,7 @@ def add_decision_node(
 ) -> dict:
     """
     Add a decision node, or update it in-place if one with the same title exists.
-    Artifact placement (artifact_ref, artifact_type) is resolved from tags automatically.
+    target_file is stored on the node and used as artifact_ref for traceability.
     """
     session = _require_session(session_id)
     node = {
@@ -74,18 +78,19 @@ def add_decision_node(
         "tradeoffs": tradeoffs or [],
         "confidence": max(0.0, min(1.0, confidence)),
         "tags": tags or [],
+        "target_file": target_file,
     }
     node.update(resolve_artifact(node))
-    # merge_decision_nodes handles dedup by title
     session.inferred_nodes = merge_decision_nodes(session.inferred_nodes, [node])
     save_session(session)
-    return {"ok": True, "title": title, "action": "added_or_updated"}
+    return {"ok": True, "title": title, "action": "added_or_updated", "target_file": target_file}
 
 
 def update_decision_node(
     session_id: str,
     title: str,
     decision: str | None = None,
+    target_file: str | None = None,
     rationale: str | None = None,
     tradeoffs: list | None = None,
     confidence: float | None = None,
@@ -107,6 +112,9 @@ def update_decision_node(
         node["tradeoffs"] = tradeoffs
     if confidence is not None:
         node["confidence"] = max(0.0, min(1.0, confidence))
+    if target_file is not None:
+        node["target_file"] = target_file
+        node.update(resolve_artifact(node))
     if tags is not None:
         node["tags"] = tags
         node.update(resolve_artifact(node))

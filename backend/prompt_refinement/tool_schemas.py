@@ -7,8 +7,9 @@ TOOL_SCHEMAS: list[dict] = [
     {
         "name": "add_plan_section",
         "description": (
-            "Create or overwrite a section in the implementation plan. "
-            "Use for new sections or when replacing an entire section's content."
+            "Create or overwrite an atomic action point in the implementation plan. "
+            "Each action point must be associated with a specific file or folder path. "
+            "Use for new action points or when replacing an entire action point's content."
         ),
         "input_schema": {
             "type": "object",
@@ -16,20 +17,24 @@ TOOL_SCHEMAS: list[dict] = [
                 "session_id": {"type": "string", "description": "Current planning session ID"},
                 "section_id": {
                     "type": "string",
-                    "description": "Stable snake_case identifier, e.g. 'auth_strategy' or 'data_model'",
+                    "description": "Stable snake_case identifier, e.g. 'create_flask_server' or 'jwt_auth_route'",
                 },
                 "content": {
                     "type": "string",
-                    "description": "Full prose content for this plan section",
+                    "description": "Full prose content describing the atomic action to perform",
+                },
+                "target_file": {
+                    "type": "string",
+                    "description": "File or folder path this action point belongs to, e.g. 'backend/server.py' or 'backend/auth/'",
                 },
             },
-            "required": ["session_id", "section_id", "content"],
+            "required": ["session_id", "section_id", "content", "target_file"],
         },
     },
     {
         "name": "update_plan_section",
         "description": (
-            "Update the content of an existing plan section. "
+            "Update the content of an existing plan action point. "
             "Returns an error if the section does not exist — use add_plan_section to create it."
         ),
         "input_schema": {
@@ -38,6 +43,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "session_id": {"type": "string"},
                 "section_id": {"type": "string"},
                 "content": {"type": "string"},
+                "target_file": {
+                    "type": "string",
+                    "description": "File or folder path this action point belongs to",
+                },
             },
             "required": ["session_id", "section_id", "content"],
         },
@@ -73,7 +82,8 @@ TOOL_SCHEMAS: list[dict] = [
         "description": (
             "Add a new architectural decision node, or update one with the same title if it already exists. "
             "Use for stable, important design choices worth documenting. "
-            "Artifact placement is resolved automatically from tags."
+            "Always specify target_file so the decision is traceable to the exact file where it is implemented. "
+            "Use '.' only for project-wide architectural decisions that have no single file."
         ),
         "input_schema": {
             "type": "object",
@@ -96,8 +106,12 @@ TOOL_SCHEMAS: list[dict] = [
                     "items": {"type": "string"},
                     "description": "Semantic tags from: auth, db, api, frontend, infra, architecture, global",
                 },
+                "target_file": {
+                    "type": "string",
+                    "description": "File path where this decision is implemented, e.g. 'backend/server.py'. Use '.' for project-wide decisions only.",
+                },
             },
-            "required": ["session_id", "title", "decision"],
+            "required": ["session_id", "title", "decision", "target_file"],
         },
     },
     {
@@ -117,6 +131,10 @@ TOOL_SCHEMAS: list[dict] = [
                 "tradeoffs": {"type": "array", "items": {"type": "string"}},
                 "confidence": {"type": "number"},
                 "tags": {"type": "array", "items": {"type": "string"}},
+                "target_file": {
+                    "type": "string",
+                    "description": "File path where this decision is implemented",
+                },
             },
             "required": ["session_id", "title"],
         },
