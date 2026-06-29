@@ -1,0 +1,206 @@
+/* ── Decision Modal (View Mode) ──────────────────────────────────────── */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 12, 28, 0.72);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+}
+
+.modal-panel {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border-folder);
+  border-radius: 12px;
+  width: 100%;
+  max-width: 540px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(108, 99, 255, 0.15);
+  overflow: hidden;
+}
+
+.modal-close {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: color 0.15s, background 0.15s;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border-folder);
+}
+
+.modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  padding-right: 24px;
+}
+
+.modal-confidence {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--mono);
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.modal-body {
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.modal-section h3 {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+  font-family: var(--mono);
+}
+
+.modal-section p {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.modal-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-list li {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding-left: 14px;
+  position: relative;
+}
+
+.modal-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--border-file);
+}
+
+.modal-artifacts {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.modal-artifacts li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-artifacts li.anchor {
+  border-color: rgba(86, 207, 178, 0.2);
+  background: rgba(86, 207, 178, 0.04);
+}
+
+.artifact-type {
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.artifact-ref {
+  color: var(--teal);
+  flex: 1;
+}
+
+.anchor-badge {
+  font-size: 9px;
+  letter-spacing: 0.4px;
+  color: var(--teal);
+  border: 1px solid rgba(86, 207, 178, 0.3);
+  border-radius: 3px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+}
+
+.modal-status {
+  padding: 24px 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.modal-status.modal-error {
+  color: var(--confidence-low);
+}
+
+/* Modal header right slot (confidence + edit button) */
+
+.modal-header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.btn-edit {
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  background: rgba(108, 99, 255, 0.1);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 5px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-edit:hover {
+  background: rgba(108, 99, 255, 0.22);
+  border-color: rgba(108, 99, 255, 0.55);
+}

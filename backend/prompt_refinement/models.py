@@ -19,5 +19,7 @@ class PlanningSession(BaseModel):
     chat_history: list[ChatEntry] = []
     implementation_plan: dict[str, dict] = Field(default_factory=dict)
     inferred_nodes: list[dict] = []
-    folder_structure: list[str] = []
+    folder_structure: list[str] = []            # global, read-only during session
+    session_folder_structure: list[str] = []    # session-scoped working copy
+    deleted_paths: list[str] = []               # paths explicitly removed
     status: Literal["planning", "finalized"] = "planning"

@@ -7,6 +7,7 @@ export default defineConfig({
     proxy: {
       '/v1': 'http://localhost:8000',
       '/prompt-refinement': 'http://localhost:8000',
+      '/project/': 'http://localhost:8000',
     },
   },
 })

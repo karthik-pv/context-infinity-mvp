@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.decisions import router as decisions_router
 from routes.planning import router as planning_router
+from routes.project import router as project_router
 
 app = FastAPI()
 
@@ -14,3 +15,4 @@ app.add_middleware(
 
 app.include_router(decisions_router)
 app.include_router(planning_router)
+app.include_router(project_router)

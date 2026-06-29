@@ -5,7 +5,7 @@ import PlanPanel from '../components/chat/PlanPanel';
 
 export default function ChatPage() {
   const {
-    sessions, sessionId, messages, plan, nodes,
+    sessions, sessionId, messages, plan, nodes, folderStructure,
     input, loading, initializing, finalized, error,
     bottomRef,
     setInput, createNew, switchToSession,
@@ -43,7 +43,7 @@ export default function ChatPage() {
         onFinalize={handleFinalize}
         nodeCount={nodes.length}
       />
-      <PlanPanel plan={plan} nodes={nodes} />
+      <PlanPanel plan={plan} nodes={nodes} folderStructure={folderStructure} />
     </div>
   );
 }

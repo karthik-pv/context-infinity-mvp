@@ -182,4 +182,29 @@ TOOL_SCHEMAS: list[dict] = [
             "required": ["query"],
         },
     },
+    {
+        "name": "modify_folder_structure",
+        "description": (
+            "Add or remove a file/folder path from the session folder structure. "
+            "Use 'add' when the plan creates a new file or folder. "
+            "Use 'remove' when the plan deletes an existing file or folder. "
+            "The structure is modified incrementally — existing paths are preserved unless explicitly removed."
+        ),
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "session_id": {"type": "string", "description": "Current planning session ID"},
+                "action": {
+                    "type": "string",
+                    "enum": ["add", "remove"],
+                    "description": "Whether to add or remove the path",
+                },
+                "path": {
+                    "type": "string",
+                    "description": "File or folder path, e.g. 'backend/server.py' or 'backend/auth/'",
+                },
+            },
+            "required": ["session_id", "action", "path"],
+        },
+    },
 ]

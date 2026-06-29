@@ -1,6 +1,6 @@
-export default function NodeCard({ node }) {
+export default function NodeCard({ node, onClick }) {
   return (
-    <div className="planner-node-card">
+    <div className="planner-node-card planner-node-card--clickable" onClick={onClick}>
       <div className="planner-node-top">
         <span className="planner-node-title">{node.title}</span>
         <span className={`planner-conf ${
@@ -12,26 +12,6 @@ export default function NodeCard({ node }) {
         </span>
       </div>
       <div className="planner-node-decision">{node.decision}</div>
-      {node.rationale && (
-        <div className="planner-node-rationale">{node.rationale}</div>
-      )}
-      {node.tradeoffs?.length > 0 && (
-        <ul className="planner-node-tradeoffs">
-          {node.tradeoffs.map((t, i) => <li key={i}>{t}</li>)}
-        </ul>
-      )}
-      <div className="planner-node-footer">
-        {node.tags?.length > 0 && (
-          <div className="planner-node-tags">
-            {node.tags.map((t, i) => (
-              <span key={i} className="planner-tag">{t}</span>
-            ))}
-          </div>
-        )}
-        {node.artifact_ref && (
-          <span className="planner-artifact-ref">{node.artifact_ref}</span>
-        )}
-      </div>
     </div>
   );
 }

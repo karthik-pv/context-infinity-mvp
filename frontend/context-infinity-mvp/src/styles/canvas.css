@@ -1,0 +1,124 @@
+/* ── Tree Canvas & Folder/File Nodes ─────────────────────────────────── */
+
+.tree-canvas {
+  flex: 1;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+/* Folder node */
+
+.folder-node {
+  border: 1.5px solid var(--border-folder);
+  border-radius: 10px;
+  background: rgba(17, 24, 42, 0.7);
+  min-width: 260px;
+  flex: 1 1 260px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.folder-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  color: var(--blue);
+  background: rgba(108, 158, 255, 0.06);
+  border-bottom: 1px solid var(--border-folder);
+  font-family: var(--mono);
+}
+
+.folder-icon { font-size: 13px; }
+
+/* Drop zone at the folder's own level (direct folder nodes) */
+.folder-own-area {
+  min-height: 44px;
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px dashed rgba(46, 58, 82, 0.6);
+  transition: background 0.15s;
+}
+
+.folder-own-area.drop-over {
+  background: var(--drop-glow);
+  border-color: var(--drop-border);
+}
+
+/* Sub-items area */
+.folder-children {
+  padding: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* File node */
+
+.file-node {
+  border: 1px solid var(--border-file);
+  border-radius: var(--radius);
+  background: rgba(30, 42, 58, 0.6);
+  min-width: 220px;
+  flex: 1 1 220px;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.file-node.drop-over {
+  border-color: var(--drop-border);
+  background: rgba(30, 42, 58, 0.85);
+}
+
+.file-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--teal);
+  background: rgba(86, 207, 178, 0.05);
+  border-bottom: 1px solid var(--border-file);
+  font-family: var(--mono);
+}
+
+.file-icon { font-size: 12px; }
+
+.file-drop-area {
+  min-height: 40px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* shared drop-area base */
+.node-drop-area {
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.file-node.drop-over .file-drop-area {
+  background: var(--drop-glow);
+}
+
+/* Empty hint */
+
+.empty-hint {
+  font-size: 10px;
+  color: rgba(122, 128, 168, 0.4);
+  letter-spacing: 0.4px;
+  align-self: center;
+  padding: 4px 0;
+  pointer-events: none;
+  user-select: none;
+}

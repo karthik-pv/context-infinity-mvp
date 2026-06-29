@@ -17,14 +17,15 @@ from .models import PlanningSession
 # ── Folder structure helper ──────────────────────────────────────────────────
 
 def _recompute_folder_structure(session: PlanningSession) -> None:
-    """Rebuild the compact folder_structure list from all plan target_file values."""
-    paths = set()
+    """Add plan target_files to session_folder_structure, remove deleted_paths."""
+    paths = set(session.session_folder_structure)
     for section in session.implementation_plan.values():
         if isinstance(section, dict):
             target = section.get("target_file", "")
             if target and target != ".":
                 paths.add(target)
-    session.folder_structure = sorted(paths)
+    paths -= set(session.deleted_paths)
+    session.session_folder_structure = sorted(paths)
 
 
 # ── Plan tools ───────────────────────────────────────────────────────────────
@@ -167,6 +168,31 @@ def append_chat_message(session_id: str, role: str, content: str) -> dict:
     session.chat_history.append(ChatEntry(role=role, content=content))
     save_session(session)
     return {"ok": True, "role": role}
+
+
+# ── Folder structure tools ───────────────────────────────────────────────────
+
+def modify_folder_structure(session_id: str, action: str, path: str) -> dict:
+    """
+    Add or remove a file/folder path from the session folder structure.
+    The structure is modified incrementally — existing paths are preserved
+    unless explicitly removed.
+    """
+    session = _require_session(session_id)
+    if action not in ("add", "remove"):
+        return {"ok": False, "error": f"Invalid action '{action}'. Use 'add' or 'remove'."}
+    if not path or path == ".":
+        return {"ok": False, "error": "path is required and cannot be '.'"}
+
+    if action == "add":
+        session.deleted_paths = [p for p in session.deleted_paths if p != path]
+    elif action == "remove":
+        if path not in session.deleted_paths:
+            session.deleted_paths.append(path)
+
+    _recompute_folder_structure(session)
+    save_session(session)
+    return {"ok": True, "action": action, "path": path}
 
 
 # ── Historical retrieval ─────────────────────────────────────────────────────

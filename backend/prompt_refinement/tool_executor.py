@@ -18,6 +18,7 @@ from .mcp_tools import (
     get_chat_history,
     append_chat_message,
     search_historical_decisions,
+    modify_folder_structure,
 )
 
 TOOLS: dict[str, callable] = {
@@ -29,6 +30,7 @@ TOOLS: dict[str, callable] = {
     "update_decision_node":        update_decision_node,
     "delete_decision_node":        delete_decision_node,
     "get_decision_nodes":          get_decision_nodes,
+    "modify_folder_structure":     modify_folder_structure,
     # Managed by the agent loop — not exposed to the LLM:
     "get_chat_history":            get_chat_history,
     "append_chat_message":         append_chat_message,

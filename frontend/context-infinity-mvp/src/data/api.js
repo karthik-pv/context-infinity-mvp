@@ -80,3 +80,32 @@ export async function finalizePlanningSession(sessionId) {
   }
   return res.json();
 }
+
+// ── Project API ──────────────────────────────────────────────────────────────
+
+const PROJECT_BASE = '/project';
+
+export async function fetchProjectInfo() {
+  const res = await fetch(`${PROJECT_BASE}/info`);
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function updateProjectInfo(data) {
+  const res = await fetch(`${PROJECT_BASE}/info`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
+export async function syncFolderStructure() {
+  const res = await fetch(`${PROJECT_BASE}/sync`, { method: 'POST' });
+  if (!res.ok) {
+    const detail = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(detail.detail || `API error: ${res.status}`);
+  }
+  return res.json();
+}

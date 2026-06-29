@@ -95,7 +95,7 @@ WHERE is_display_anchor = TRUE;
 
 -- =====================================================
 -- TABLE: planning_sessions
--- Persisted planning session state (chat, plan, nodes, folder structure)
+-- Persisted planning session state (chat, plan, nodes)
 -- One row per session, upserted on every state change
 -- =====================================================
 CREATE TABLE planning_sessions (
@@ -114,12 +114,20 @@ CREATE TABLE planning_sessions (
     -- Inferred decision nodes (session-scoped, not yet finalized)
     inferred_nodes JSONB NOT NULL DEFAULT '[]',
 
-    -- Compact sorted list of file/folder paths derived from the plan
-    folder_structure TEXT[] NOT NULL DEFAULT '{}',
+    -- Session-scoped working copy of folder structure (only persisted to
+    -- project_info.folder_structure on finalize)
+    session_folder_structure JSONB NOT NULL DEFAULT '[]',
+
+    -- Paths explicitly removed via modify_folder_structure tool
+    deleted_paths JSONB NOT NULL DEFAULT '[]',
 
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- Migration for existing databases
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS session_folder_structure JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS deleted_paths JSONB NOT NULL DEFAULT '[]';
 
 
 -- =====================================================
@@ -130,3 +138,32 @@ ON planning_sessions(status);
 
 CREATE INDEX idx_planning_sessions_updated
 ON planning_sessions(updated_at DESC);
+
+
+-- =====================================================
+-- TABLE: project_info
+-- Singleton row (id = 1) storing project-level metadata
+-- =====================================================
+CREATE TABLE project_info (
+    id INT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+
+    -- Filesystem path of the target project
+    project_path TEXT NOT NULL DEFAULT '',
+
+    -- Free-text brief / summary of the project
+    project_brief TEXT NOT NULL DEFAULT '',
+
+    -- Compact sorted list of file/folder paths derived from the plan
+    folder_structure TEXT[] NOT NULL DEFAULT '{}',
+
+    -- Actual filesystem scan of project_path (updated via sync)
+    actual_folder_structure TEXT[] NOT NULL DEFAULT '{}',
+
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+-- Seed the singleton row
+INSERT INTO project_info (id) VALUES (1) ON CONFLICT DO NOTHING;
+
+-- Migration for existing databases
+ALTER TABLE project_info ADD COLUMN IF NOT EXISTS actual_folder_structure TEXT[] NOT NULL DEFAULT '{}';

@@ -1,0 +1,269 @@
+/* ── Planner: Right Panels (Plan + Decision Nodes + Folder Structure) ── */
+
+.planner-right-panel {
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Implementation Plan panel */
+
+.planner-plan-panel {
+  display: flex;
+  flex-direction: column;
+  border-bottom: 1px solid var(--border-folder);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.planner-copy-btn {
+  margin-left: auto;
+  margin-right: 6px;
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--text-dim);
+  background: none;
+  border: 1px solid var(--border-folder);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
+}
+
+.planner-copy-btn:hover:not(:disabled) {
+  color: var(--accent);
+  border-color: rgba(108, 99, 255, 0.5);
+  background: rgba(108, 99, 255, 0.08);
+}
+
+.planner-copy-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.plan-section {
+  background: var(--surface2);
+  border: 1px solid var(--border-card);
+  border-radius: 7px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.plan-section-id {
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--accent2);
+}
+
+.plan-section-file {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
+.plan-section-content {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Decision Nodes panel */
+
+.planner-right-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.planner-nodes-panel {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-folder);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.planner-node-card--clickable {
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.planner-node-card--clickable:hover {
+  border-color: rgba(108, 99, 255, 0.4);
+  background: rgba(108, 99, 255, 0.04);
+}
+
+.planner-node-card {
+  background: var(--surface2);
+  border: 1px solid var(--border-card);
+  border-radius: 7px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.planner-node-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.planner-node-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+}
+
+.planner-conf {
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.planner-conf--high {
+  color: var(--confidence-high);
+  background: rgba(52, 211, 153, 0.12);
+}
+
+.planner-conf--med {
+  color: var(--confidence-med);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.planner-conf--low {
+  color: var(--confidence-low);
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.planner-node-decision {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.planner-node-rationale {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.planner-node-tradeoffs {
+  margin: 2px 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.planner-node-tradeoffs li {
+  font-size: 11px;
+  color: var(--text-dim);
+  line-height: 1.4;
+}
+
+.planner-node-footer {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.planner-node-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.planner-tag {
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(108, 99, 255, 0.12);
+  color: var(--accent);
+  border: 1px solid rgba(108, 99, 255, 0.25);
+}
+
+.planner-artifact-ref {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--text-dim);
+  opacity: 0.6;
+  margin-left: auto;
+}
+
+/* Folder Structure panel */
+
+.planner-folder-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.folder-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.folder-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text);
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder-tree-item:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.folder-tree-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.folder-tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Node detail modal (session-scoped) */
+
+.node-detail-code {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--teal);
+  background: rgba(86, 207, 178, 0.06);
+  border: 1px solid rgba(86, 207, 178, 0.15);
+  border-radius: 4px;
+  padding: 2px 6px;
+}

@@ -65,6 +65,17 @@ Rules for decision nodes:
 - Confidence levels: 0.6 = tentative guess, 0.85 = well-reasoned, 0.95+ = confirmed by user.
 - Decision node tags drive semantic categorization. Use from: auth, db, api, frontend, infra, architecture, global.
 
+=== FOLDER STRUCTURE MANAGEMENT ===
+
+The session maintains a working copy of the project folder structure. Plan section
+target_files are automatically added. Use the modify_folder_structure tool for explicit
+control:
+- Call modify_folder_structure with action "add" when the plan creates a new file or folder
+  that is NOT already a target_file of a plan section.
+- Call modify_folder_structure with action "remove" when the plan instructs deletion of an
+  existing file or folder. This ensures deleted files disappear from the structure.
+- The structure is modified incrementally — existing paths are preserved unless explicitly removed.
+
 === USER-FACING RESPONSE: ARCHITECTURE-DRIVEN SUGGESTIONS ===
 
 Your final text response (the one with no tool calls) is sent verbatim to the user.

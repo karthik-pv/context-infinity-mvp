@@ -1,0 +1,71 @@
+/* ── App Shell & Navigation ──────────────────────────────────────────── */
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 24px;
+  background: linear-gradient(180deg, rgba(23,28,46,0.98), rgba(17,24,38,0.95));
+  border-bottom: 1px solid var(--border-folder);
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.logo-mark {
+  font-size: 18px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.app-header h1 {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.header-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+.app-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+
+.nav-link {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  text-decoration: none;
+  padding: 4px 12px;
+  border-radius: 5px;
+  border: 1px solid transparent;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+
+.nav-link:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-link--active {
+  color: var(--accent);
+  background: rgba(108, 99, 255, 0.1);
+  border-color: rgba(108, 99, 255, 0.3);
+}

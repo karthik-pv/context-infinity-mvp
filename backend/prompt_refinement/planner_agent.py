@@ -61,7 +61,7 @@ async def run_planner_agent(session_id: str, user_message: str) -> str:
         chat_history=format_chat_history(session.chat_history),
         implementation_plan=format_plan(session.implementation_plan),
         inferred_nodes=format_nodes(session.inferred_nodes),
-        folder_structure=format_folder_structure(session.folder_structure),
+        folder_structure=format_folder_structure(session.session_folder_structure),
         historical_decisions=format_historical(historical),
     )
 

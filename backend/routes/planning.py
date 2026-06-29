@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from prompt_refinement.session_store import create_session, get_session, save_session, list_sessions
 from prompt_refinement.planner import process_chat_message
 from db_layer.planning_db import save_finalized_nodes
+from db_layer.project_db import update_folder_structure
 
 router = APIRouter(prefix="/prompt-refinement")
 
@@ -71,6 +72,7 @@ def finalize_planning_session(body: FinalizeRequest):
     if session.status == "finalized":
         raise HTTPException(status_code=400, detail="Session already finalized")
     save_finalized_nodes(session.inferred_nodes)
+    update_folder_structure(session.session_folder_structure)
     session.status = "finalized"
     save_session(session)
     return {"status": "finalized"}

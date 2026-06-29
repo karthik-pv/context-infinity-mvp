@@ -1,0 +1,118 @@
+/* ── Modal Edit Form & Actions ───────────────────────────────────────── */
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-field label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-family: var(--mono);
+}
+
+.field-hint {
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: rgba(122, 128, 168, 0.5);
+}
+
+.edit-input,
+.edit-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-folder);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.edit-input:focus,
+.edit-textarea:focus {
+  border-color: var(--accent);
+  background: rgba(108, 99, 255, 0.05);
+}
+
+.edit-range {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+  height: 4px;
+}
+
+.confidence-preview {
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--mono);
+  margin-left: auto;
+}
+
+/* Save/cancel actions */
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.btn-cancel,
+.btn-save {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.4px;
+  border-radius: 6px;
+  padding: 6px 16px;
+  cursor: pointer;
+  border: 1px solid;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.btn-cancel {
+  color: var(--text-dim);
+  background: transparent;
+  border-color: var(--border-folder);
+}
+
+.btn-cancel:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--border-file);
+}
+
+.btn-save {
+  color: #0c1020;
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.btn-save:hover:not(:disabled) {
+  background: #7d75ff;
+  border-color: #7d75ff;
+}
+
+.btn-cancel:disabled,
+.btn-save:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.modal-save-error {
+  font-size: 12px;
+  color: var(--confidence-low);
+}
