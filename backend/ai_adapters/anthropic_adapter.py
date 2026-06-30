@@ -10,23 +10,27 @@ class AnthropicAdapter(AIAdapter):
         self.model = config.get("model", "claude-opus-4-8")
         self.max_tokens = config.get("max_tokens", 1024)
 
-    async def chat(self, message: str) -> str:
+    async def chat(self, message: str) -> tuple[str, dict]:
         response = await self.client.messages.create(
             model=self.model,
-            max_tokens=self.max_tokens,
+            max_tokens=max(self.max_tokens, 4096),
             messages=[{"role": "user", "content": message}],
         )
-        return response.content[0].text
+        usage = {
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens,
+        }
+        return response.content[0].text, usage
 
     async def chat_with_tools(
         self,
         system: str,
         messages: list[dict],
         tools: list[dict],
-    ) -> tuple[str | None, list[dict]]:
+    ) -> tuple[str | None, list[dict], dict]:
         """
         Single Anthropic turn with tool use.
-        Converts OpenAI-format messages and returns normalized (text, tool_calls).
+        Converts OpenAI-format messages and returns normalized (text, tool_calls, usage).
         Tool schemas are already in Anthropic format (input_schema field).
         """
         anthropic_messages = _to_anthropic_messages(messages)
@@ -46,7 +50,12 @@ class AnthropicAdapter(AIAdapter):
         text_parts = [block.text for block in response.content if block.type == "text"]
         final_text = "\n".join(text_parts).strip() or None
 
-        return final_text, tool_calls
+        usage = {
+            "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens,
+        }
+
+        return final_text, tool_calls, usage
 
 
 # ── Message format conversion: OpenAI → Anthropic ───────────────────────────

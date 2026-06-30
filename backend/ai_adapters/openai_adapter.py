@@ -10,20 +10,24 @@ class OpenAIAdapter(AIAdapter):
         self.model = config.get("model", "gpt-4o")
         self.max_tokens = config.get("max_tokens", 1024)
 
-    async def chat(self, message: str) -> str:
+    async def chat(self, message: str) -> tuple[str, dict]:
         response = await self.client.chat.completions.create(
             model=self.model,
-            max_tokens=self.max_tokens,
+            max_tokens=max(self.max_tokens, 4096),
             messages=[{"role": "user", "content": message}],
         )
-        return response.choices[0].message.content
+        usage = {
+            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+        }
+        return response.choices[0].message.content, usage
 
     async def chat_with_tools(
         self,
         system: str,
         messages: list[dict],
         tools: list[dict],
-    ) -> tuple[str | None, list[dict]]:
+    ) -> tuple[str | None, list[dict], dict]:
         """
         Single OpenAI turn with function calling.
         Prepends system as a system message; tools are converted from Anthropic to OpenAI format.
@@ -49,7 +53,12 @@ class OpenAIAdapter(AIAdapter):
                 "input": json.loads(tc.function.arguments),
             })
 
-        return final_text if not tool_calls else None, tool_calls
+        usage = {
+            "input_tokens": response.usage.prompt_tokens if response.usage else 0,
+            "output_tokens": response.usage.completion_tokens if response.usage else 0,
+        }
+
+        return final_text if not tool_calls else None, tool_calls, usage
 
 
 def _anthropic_to_openai_tool(tool: dict) -> dict:

@@ -124,6 +124,18 @@ CREATE TABLE planning_sessions (
     -- Decision violations detected in the last planning turn
     violations JSONB NOT NULL DEFAULT '[]',
 
+    -- Pending clarification questions for the UI (from request_clarification tool)
+    clarifications JSONB NOT NULL DEFAULT '[]',
+
+    -- Architecture suggestions for the UI (from emit_suggestions tool)
+    suggestions JSONB NOT NULL DEFAULT '[]',
+
+    -- Critical blockers for the UI (from emit_blockers tool)
+    blockers JSONB NOT NULL DEFAULT '[]',
+
+    -- Retrieval query {files, tags} emitted by the planner for historical lookup
+    retrieval_query JSONB NOT NULL DEFAULT '{}',
+
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -132,6 +144,10 @@ CREATE TABLE planning_sessions (
 ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS session_folder_structure JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS deleted_paths JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS violations JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS clarifications JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS suggestions JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS blockers JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS retrieval_query JSONB NOT NULL DEFAULT '{}';
 
 
 -- =====================================================
@@ -154,14 +170,21 @@ CREATE TABLE project_info (
     -- Filesystem path of the target project
     project_path TEXT NOT NULL DEFAULT '',
 
-    -- Free-text brief / summary of the project
-    project_brief TEXT NOT NULL DEFAULT '',
+    -- Session summaries (one entry per finalized session, max 2 sentences each)
+    project_brief TEXT[] NOT NULL DEFAULT '{}',
 
     -- Compact sorted list of file/folder paths derived from the plan
     folder_structure TEXT[] NOT NULL DEFAULT '{}',
 
     -- Actual filesystem scan of project_path (updated via sync)
     actual_folder_structure TEXT[] NOT NULL DEFAULT '{}',
+
+    -- Cumulative token usage across all planning sessions
+    input_tokens_consumed BIGINT NOT NULL DEFAULT 0,
+    output_tokens_consumed BIGINT NOT NULL DEFAULT 0,
+
+    -- Calculated cost (populated once model pricing is configured)
+    cost NUMERIC(10,4) NOT NULL DEFAULT 0,
 
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -171,3 +194,6 @@ INSERT INTO project_info (id) VALUES (1) ON CONFLICT DO NOTHING;
 
 -- Migration for existing databases
 ALTER TABLE project_info ADD COLUMN IF NOT EXISTS actual_folder_structure TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE project_info ADD COLUMN IF NOT EXISTS input_tokens_consumed BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE project_info ADD COLUMN IF NOT EXISTS output_tokens_consumed BIGINT NOT NULL DEFAULT 0;
+ALTER TABLE project_info ADD COLUMN IF NOT EXISTS cost NUMERIC(10,4) NOT NULL DEFAULT 0;

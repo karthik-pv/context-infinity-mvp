@@ -14,6 +14,13 @@ from .artifact_resolver import resolve_artifact
 from .models import PlanningSession
 
 
+# ── Field whitelists for batch_update ────────────────────────────────────────
+
+_SECTION_FIELDS = {"section_id", "content", "target_file"}
+_NODE_FIELDS = {"title", "decision", "target_file", "rationale", "tradeoffs", "confidence", "tags"}
+_FOLDER_FIELDS = {"action", "path"}
+
+
 # ── Folder structure helper ──────────────────────────────────────────────────
 
 def _recompute_folder_structure(session: PlanningSession) -> None:
@@ -207,6 +214,120 @@ def search_historical_decisions(query: str) -> dict:
     """Search persisted decision nodes from previous sessions by keyword overlap."""
     results = retrieve_relevant_context(query)
     return {"results": results}
+
+
+# ── Batch update: single call for all mutations ──────────────────────────────
+
+def batch_update(
+    session_id: str,
+    plan_sections: list[dict] | None = None,
+    decision_nodes: list[dict] | None = None,
+    folder_changes: list[dict] | None = None,
+    delete_plan_sections: list[str] | None = None,
+    delete_decision_nodes: list[str] | None = None,
+) -> dict:
+    """
+    Apply multiple plan, decision, and folder-structure changes in one call.
+    Delegates to the individual tool functions so each mutation reuses existing
+    logic (risky-flag clearing, folder-structure recompute, persistence).
+    Extra fields in input dicts are silently filtered via whitelists.
+    """
+    results = []
+
+    for sid in (delete_plan_sections or []):
+        results.append(delete_plan_section(session_id, sid))
+
+    for sec in (plan_sections or []):
+        filtered = {k: v for k, v in sec.items() if k in _SECTION_FIELDS}
+        results.append(add_plan_section(session_id, **filtered))
+
+    for title in (delete_decision_nodes or []):
+        results.append(delete_decision_node(session_id, title))
+
+    for node in (decision_nodes or []):
+        filtered = {k: v for k, v in node.items() if k in _NODE_FIELDS}
+        results.append(add_decision_node(session_id, **filtered))
+
+    for change in (folder_changes or []):
+        filtered = {k: v for k, v in change.items() if k in _FOLDER_FIELDS}
+        results.append(modify_folder_structure(session_id, **filtered))
+
+    return {"ok": True}
+
+
+# ── Inline violation reporting (replaces separate LLM call) ──────────────────
+
+def report_violations(session_id: str, violations: list[dict]) -> dict:
+    """
+    Store violation analysis results on the session.
+    The LLM calls this after batch_update with any conflicts it found against
+    existing decisions.  Risky flags are applied by the agent loop after it
+    reads session.violations.
+    """
+    session = _require_session(session_id)
+    session.violations = violations or []
+    save_session(session)
+    return {"ok": True, "count": len(session.violations)}
+
+
+# ── State engine tools (tool-only architecture — no prose responses) ─────────
+
+def request_clarification(session_id: str, questions: list[dict]) -> dict:
+    """Store clarification questions on the session for the UI to render."""
+    session = _require_session(session_id)
+    session.clarifications = questions or []
+    save_session(session)
+    return {"ok": True, "count": len(session.clarifications)}
+
+
+def emit_suggestions(session_id: str, suggestions: list[dict]) -> dict:
+    """Store architecture suggestions on the session for the UI to render."""
+    session = _require_session(session_id)
+    session.suggestions = suggestions or []
+    save_session(session)
+    return {"ok": True, "count": len(session.suggestions)}
+
+
+def emit_blockers(session_id: str, blockers: list[dict]) -> dict:
+    """Store critical blockers on the session for the UI to render."""
+    session = _require_session(session_id)
+    session.blockers = blockers or []
+    save_session(session)
+    return {"ok": True, "count": len(session.blockers)}
+
+
+def search_decisions(session_id: str, file: str = "", tag: str = "") -> dict:
+    """
+    Retrieve historical decisions from the DB by file path or tag.
+    Returns at most 5 compact results (title + decision only) to keep token
+    footprint small.  No ranking yet — first 5 matches.
+    """
+    from db_layer.postgres_access import get_decisions
+
+    file = (file or "").strip()
+    tag = (tag or "").strip().lower()
+
+    if not file and not tag:
+        return {"ok": True, "results": [], "hint": "Pass file or tag to get matches."}
+
+    all_nodes = get_decisions()
+    results = []
+
+    for node in all_nodes:
+        node_file = (node.get("location") or "").strip()
+        node_tags = {t.lower() for t in node.get("tags", [])}
+
+        match = (file and node_file == file) or (tag and tag in node_tags)
+
+        if match:
+            results.append({
+                "title": node.get("title", ""),
+                "decision": node.get("decision", ""),
+            })
+            if len(results) >= 5:
+                break
+
+    return {"ok": True, "results": results}
 
 
 # ── Internal helper ──────────────────────────────────────────────────────────

@@ -23,4 +23,8 @@ class PlanningSession(BaseModel):
     session_folder_structure: list[str] = []    # session-scoped working copy
     deleted_paths: list[str] = []               # paths explicitly removed
     violations: list[dict] = []                 # decision violations from last turn
+    clarifications: list[dict] = []             # pending clarification questions for UI
+    suggestions: list[dict] = []                # architecture suggestions for UI
+    blockers: list[dict] = []                   # critical blockers for UI
+    retrieval_query: dict = Field(default_factory=dict)  # {files, tags} for historical lookup
     status: Literal["planning", "finalized"] = "planning"

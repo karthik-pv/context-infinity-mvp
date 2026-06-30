@@ -52,5 +52,5 @@ def decision_update(decision_id: str, body: DecisionUpdate):
 @router.post("/v1/chat")
 async def chat(body: ChatMessage):
     adapter = get_adapter()
-    reply = await adapter.chat(body.message)
+    reply, _ = await adapter.chat(body.message)
     return {"reply": reply}

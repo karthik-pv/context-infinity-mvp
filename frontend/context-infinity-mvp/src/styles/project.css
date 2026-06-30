@@ -143,10 +143,48 @@
 /* Right: path + brief + summary */
 
 .project-right {
+  position: relative;
   display: flex;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+/* Token usage badges — top-right corner, same level as "Project Path" label */
+
+.project-tokens {
+  position: absolute;
+  top: 14px;
+  right: 20px;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.project-token-badge {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 5px;
+  background: rgba(86, 207, 178, 0.08);
+  border: 1px solid rgba(86, 207, 178, 0.2);
+}
+
+.project-token-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.project-token-value {
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--teal);
 }
 
 .project-right-top {

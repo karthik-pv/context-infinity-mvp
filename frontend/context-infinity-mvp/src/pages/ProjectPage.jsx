@@ -3,9 +3,17 @@ import { useProject } from '../hooks/useProject';
 import FolderTree from '../components/project/FolderTree';
 import DriftModal from '../components/project/DriftModal';
 
+function formatTokens(n) {
+  if (!n) return '0';
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+  return String(n);
+}
+
 export default function ProjectPage() {
   const {
     projectPath, projectBrief, folderStructure, actualFolderStructure,
+    inputTokens, outputTokens,
     loading, saving, syncing, error,
     setProjectPath, setProjectBrief,
     savePath, saveBrief, syncFolders,
@@ -68,7 +76,18 @@ export default function ProjectPage() {
         </div>
       </div>
 
+      
       <div className="project-right">
+        <div className="project-tokens">
+          <div className="project-token-badge">
+            <span className="project-token-label">In</span>
+            <span className="project-token-value">{formatTokens(inputTokens)}</span>
+          </div>
+          <div className="project-token-badge">
+            <span className="project-token-label">Out</span>
+            <span className="project-token-value">{formatTokens(outputTokens)}</span>
+          </div>
+      </div>
         <div className="project-right-top">
           <label className="project-field-label">Project Path</label>
           <div className="project-path-row">

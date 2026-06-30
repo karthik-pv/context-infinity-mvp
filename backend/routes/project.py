@@ -16,7 +16,7 @@ _MAX_FILES = 5000
 
 class UpdateProjectRequest(BaseModel):
     project_path: str | None = None
-    project_brief: str | None = None
+    project_brief: str | list[str] | None = None
 
 
 @router.get("/info")

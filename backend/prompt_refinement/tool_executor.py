@@ -5,7 +5,7 @@ TOOLS        — callable registry keyed by tool name.
 TOOL_SCHEMAS — re-exported from tool_schemas for backward-compatible imports.
 execute_tool — generic dispatcher that calls the registered function and returns a result dict.
 """
-from .tool_schemas import TOOL_SCHEMAS
+from .tool_schemas import TOOL_SCHEMAS, TOOL_SCHEMAS_MINIMAL
 from .mcp_tools import (
     add_plan_section,
     update_plan_section,
@@ -19,18 +19,32 @@ from .mcp_tools import (
     append_chat_message,
     search_historical_decisions,
     modify_folder_structure,
+    batch_update,
+    report_violations,
+    request_clarification,
+    emit_suggestions,
+    emit_blockers,
+    search_decisions,
 )
 
 TOOLS: dict[str, callable] = {
+    "batch_update":                batch_update,
+    "request_clarification":       request_clarification,
+    "emit_suggestions":            emit_suggestions,
+    "emit_blockers":               emit_blockers,
+    "search_decisions":            search_decisions,
+    "report_violations":           report_violations,
+    # Individual mutation tools — kept for internal use by batch_update:
     "add_plan_section":            add_plan_section,
     "update_plan_section":         update_plan_section,
     "delete_plan_section":         delete_plan_section,
-    "get_plan":                    get_plan,
     "add_decision_node":           add_decision_node,
     "update_decision_node":        update_decision_node,
     "delete_decision_node":        delete_decision_node,
-    "get_decision_nodes":          get_decision_nodes,
     "modify_folder_structure":     modify_folder_structure,
+    # Read-only tools (not exposed to LLM — state is in system prompt):
+    "get_plan":                    get_plan,
+    "get_decision_nodes":          get_decision_nodes,
     # Managed by the agent loop — not exposed to the LLM:
     "get_chat_history":            get_chat_history,
     "append_chat_message":         append_chat_message,

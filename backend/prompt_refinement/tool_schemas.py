@@ -1,210 +1,157 @@
 """
-Anthropic-format tool schemas exposed to the LLM during planning sessions.
-Imported by tool_executor.py and planner_agent.py.
+Anthropic-format tool schemas for the planning agent.
+
+Bare-minimum schemas to conserve tokens.  No nested property descriptions —
+the LLM infers field meaning from names + system prompt rules.
 """
 
+_BATCH_UPDATE = {
+    "name": "batch_update",
+    "description": "Apply all plan, decision, and folder changes in one call.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {"type": "string"},
+            "plan_sections": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "section_id": {"type": "string"},
+                        "content": {"type": "string"},
+                        "target_file": {"type": "string"},
+                    },
+                    "required": ["section_id", "content", "target_file"],
+                },
+            },
+            "delete_plan_sections": {"type": "array", "items": {"type": "string"}},
+            "decision_nodes": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "title": {"type": "string"},
+                        "decision": {"type": "string"},
+                        "target_file": {"type": "string"},
+                        "rationale": {"type": "string"},
+                        "tradeoffs": {"type": "array", "items": {"type": "string"}},
+                        "confidence": {"type": "number"},
+                        "tags": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["title", "decision", "target_file"],
+                },
+            },
+            "delete_decision_nodes": {"type": "array", "items": {"type": "string"}},
+            "folder_changes": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "action": {"type": "string", "enum": ["add", "remove"]},
+                        "path": {"type": "string"},
+                    },
+                    "required": ["action", "path"],
+                },
+            },
+        },
+        "required": ["session_id"],
+    },
+}
+
+_SEARCH_DECISIONS = {
+    "name": "search_decisions",
+    "description": "Get historical decisions from DB by file or tag.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {"type": "string"},
+            "file": {"type": "string"},
+            "tag": {"type": "string"},
+        },
+        "required": ["session_id"],
+    },
+}
+
+_REQUEST_CLARIFICATION = {
+    "name": "request_clarification",
+    "description": "Ask user when intent is ambiguous.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {"type": "string"},
+            "questions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "question": {"type": "string"},
+                        "type": {"type": "string", "enum": ["text", "single_select", "multi_select"]},
+                        "options": {"type": "array", "items": {"type": "string"}},
+                    },
+                    "required": ["id", "question", "type"],
+                },
+            },
+        },
+        "required": ["session_id", "questions"],
+    },
+}
+
+_EMIT_SUGGESTIONS = {
+    "name": "emit_suggestions",
+    "description": "Propose architecture improvements.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {"type": "string"},
+            "suggestions": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "id": {"type": "string"},
+                        "title": {"type": "string"},
+                        "description": {"type": "string"},
+                        "priority": {"type": "string", "enum": ["low", "medium", "high"]},
+                    },
+                    "required": ["id", "title", "description", "priority"],
+                },
+            },
+        },
+        "required": ["session_id", "suggestions"],
+    },
+}
+
+_EMIT_BLOCKERS = {
+    "name": "emit_blockers",
+    "description": "Flag critical conflicts or blockers.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "session_id": {"type": "string"},
+            "blockers": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "severity": {"type": "string", "enum": ["low", "medium", "high"]},
+                        "title": {"type": "string"},
+                        "reason": {"type": "string"},
+                    },
+                    "required": ["severity", "title", "reason"],
+                },
+            },
+        },
+        "required": ["session_id", "blockers"],
+    },
+}
+
 TOOL_SCHEMAS: list[dict] = [
-    {
-        "name": "add_plan_section",
-        "description": (
-            "Create or overwrite an atomic action point in the implementation plan. "
-            "Each action point must be associated with a specific file or folder path. "
-            "Use for new action points or when replacing an entire action point's content."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string", "description": "Current planning session ID"},
-                "section_id": {
-                    "type": "string",
-                    "description": "Stable snake_case identifier, e.g. 'create_flask_server' or 'jwt_auth_route'",
-                },
-                "content": {
-                    "type": "string",
-                    "description": "Full prose content describing the atomic action to perform",
-                },
-                "target_file": {
-                    "type": "string",
-                    "description": "File or folder path this action point belongs to, e.g. 'backend/server.py' or 'backend/auth/'",
-                },
-            },
-            "required": ["session_id", "section_id", "content", "target_file"],
-        },
-    },
-    {
-        "name": "update_plan_section",
-        "description": (
-            "Update the content of an existing plan action point. "
-            "Returns an error if the section does not exist — use add_plan_section to create it."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-                "section_id": {"type": "string"},
-                "content": {"type": "string"},
-                "target_file": {
-                    "type": "string",
-                    "description": "File or folder path this action point belongs to",
-                },
-            },
-            "required": ["session_id", "section_id", "content"],
-        },
-    },
-    {
-        "name": "delete_plan_section",
-        "description": "Remove a section from the implementation plan.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-                "section_id": {"type": "string"},
-            },
-            "required": ["session_id", "section_id"],
-        },
-    },
-    {
-        "name": "get_plan",
-        "description": (
-            "Return the current implementation plan in full. "
-            "Call this to inspect current plan state before making targeted updates."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-            },
-            "required": ["session_id"],
-        },
-    },
-    {
-        "name": "add_decision_node",
-        "description": (
-            "Add a new architectural decision node, or update one with the same title if it already exists. "
-            "Use for stable, important design choices worth documenting. "
-            "Always specify target_file so the decision is traceable to the exact file where it is implemented. "
-            "Use '.' only for project-wide architectural decisions that have no single file."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-                "title": {"type": "string", "description": "Short, unique decision title"},
-                "decision": {"type": "string", "description": "What was decided"},
-                "rationale": {"type": "string", "description": "Why this approach was chosen"},
-                "tradeoffs": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "List of trade-off strings (pros and cons)",
-                },
-                "confidence": {
-                    "type": "number",
-                    "description": "0.0–1.0: 0.6=tentative, 0.85=well-reasoned, 0.95+=confirmed by user",
-                },
-                "tags": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Semantic tags from: auth, db, api, frontend, infra, architecture, global",
-                },
-                "target_file": {
-                    "type": "string",
-                    "description": "File path where this decision is implemented, e.g. 'backend/server.py'. Use '.' for project-wide decisions only.",
-                },
-            },
-            "required": ["session_id", "title", "decision", "target_file"],
-        },
-    },
-    {
-        "name": "update_decision_node",
-        "description": (
-            "Partially update an existing decision node by title. "
-            "Only pass fields you want to change. "
-            "Returns an error if the node is not found."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-                "title": {"type": "string", "description": "Exact title of the node to update"},
-                "decision": {"type": "string"},
-                "rationale": {"type": "string"},
-                "tradeoffs": {"type": "array", "items": {"type": "string"}},
-                "confidence": {"type": "number"},
-                "tags": {"type": "array", "items": {"type": "string"}},
-                "target_file": {
-                    "type": "string",
-                    "description": "File path where this decision is implemented",
-                },
-            },
-            "required": ["session_id", "title"],
-        },
-    },
-    {
-        "name": "delete_decision_node",
-        "description": "Remove a decision node by title.",
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-                "title": {"type": "string"},
-            },
-            "required": ["session_id", "title"],
-        },
-    },
-    {
-        "name": "get_decision_nodes",
-        "description": (
-            "Return all current inferred decision nodes. "
-            "Call this to inspect current nodes before making targeted updates."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string"},
-            },
-            "required": ["session_id"],
-        },
-    },
-    {
-        "name": "search_historical_decisions",
-        "description": (
-            "Search previously persisted architectural decisions from past planning sessions. "
-            "Use when the user discusses a topic that may have relevant prior decisions."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Keywords describing the architecture area to search",
-                },
-            },
-            "required": ["query"],
-        },
-    },
-    {
-        "name": "modify_folder_structure",
-        "description": (
-            "Add or remove a file/folder path from the session folder structure. "
-            "Use 'add' when the plan creates a new file or folder. "
-            "Use 'remove' when the plan deletes an existing file or folder. "
-            "The structure is modified incrementally — existing paths are preserved unless explicitly removed."
-        ),
-        "input_schema": {
-            "type": "object",
-            "properties": {
-                "session_id": {"type": "string", "description": "Current planning session ID"},
-                "action": {
-                    "type": "string",
-                    "enum": ["add", "remove"],
-                    "description": "Whether to add or remove the path",
-                },
-                "path": {
-                    "type": "string",
-                    "description": "File or folder path, e.g. 'backend/server.py' or 'backend/auth/'",
-                },
-            },
-            "required": ["session_id", "action", "path"],
-        },
-    },
+    _BATCH_UPDATE,
+    _SEARCH_DECISIONS,
+    _REQUEST_CLARIFICATION,
+    _EMIT_SUGGESTIONS,
+    _EMIT_BLOCKERS,
 ]
+
+TOOL_SCHEMAS_MINIMAL: list[dict] = TOOL_SCHEMAS

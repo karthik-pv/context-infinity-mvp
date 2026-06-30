@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from prompt_refinement.session_store import create_session, get_session, save_session, list_sessions
 from prompt_refinement.planner import process_chat_message
 from db_layer.planning_db import save_finalized_nodes
-from db_layer.project_db import update_folder_structure
+from db_layer.project_db import update_folder_structure, append_session_summary
 
 router = APIRouter(prefix="/prompt-refinement")
 
@@ -15,6 +15,24 @@ class PlanningChatRequest(BaseModel):
 
 class FinalizeRequest(BaseModel):
     session_id: str
+
+
+def _generate_session_summary(session) -> str:
+    """Compact 2-sentence summary from plan target_files and decision titles."""
+    plan_files = [
+        sec.get("target_file", "")
+        for sec in session.implementation_plan.values()
+        if sec.get("target_file", "") and sec.get("target_file", "") != "."
+    ]
+    decision_titles = [n.get("title", "") for n in session.inferred_nodes]
+    parts = []
+    if plan_files:
+        parts.append("Files: " + ", ".join(plan_files[:8]))
+    if decision_titles:
+        parts.append("Decisions: " + ", ".join(decision_titles[:8]))
+    if not parts:
+        return "Empty session."
+    return ". ".join(parts) + "."
 
 
 @router.get("/sessions")
@@ -73,6 +91,7 @@ def finalize_planning_session(body: FinalizeRequest):
         raise HTTPException(status_code=400, detail="Session already finalized")
     save_finalized_nodes(session.inferred_nodes)
     update_folder_structure(session.session_folder_structure)
+    append_session_summary(_generate_session_summary(session))
     session.status = "finalized"
     save_session(session)
     return {"status": "finalized"}

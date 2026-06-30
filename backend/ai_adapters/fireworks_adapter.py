@@ -13,21 +13,27 @@ class FireworksAdapter(AIAdapter):
         self.model = config.get("model", _DEFAULT_MODEL)
         self.max_tokens = config.get("max_tokens", 1024)
 
-    async def chat(self, message: str) -> str:
+    async def chat(self, message: str) -> tuple[str, dict]:
         payload = {
             "model": self.model,
-            "max_tokens": self.max_tokens,
+            "max_tokens": max(self.max_tokens, 4096),
             "messages": [{"role": "user", "content": message}],
         }
         data = await self._post(payload)
-        return data["choices"][0]["message"]["content"]
+        text = data["choices"][0]["message"]["content"]
+        usage_data = data.get("usage") or {}
+        usage = {
+            "input_tokens": usage_data.get("prompt_tokens", 0),
+            "output_tokens": usage_data.get("completion_tokens", 0),
+        }
+        return text, usage
 
     async def chat_with_tools(
         self,
         system: str,
         messages: list[dict],
         tools: list[dict],
-    ) -> tuple[str | None, list[dict]]:
+    ) -> tuple[str | None, list[dict], dict]:
         """
         Single Fireworks turn with tool calling (OpenAI-compatible format).
         Prepends system as a system message; tools converted from Anthropic to OpenAI format.
@@ -56,7 +62,13 @@ class FireworksAdapter(AIAdapter):
                 "input": json.loads(tc["function"]["arguments"]),
             })
 
-        return final_text if not tool_calls else None, tool_calls
+        usage_data = data.get("usage") or {}
+        usage = {
+            "input_tokens": usage_data.get("prompt_tokens", 0),
+            "output_tokens": usage_data.get("completion_tokens", 0),
+        }
+
+        return final_text if not tool_calls else None, tool_calls, usage
 
     async def _post(self, payload: dict) -> dict:
         headers = {

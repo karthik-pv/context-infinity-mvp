@@ -66,13 +66,18 @@ def save_session(session: PlanningSession) -> None:
     session_fs_json = json.dumps(session.session_folder_structure)
     deleted_paths_json = json.dumps(session.deleted_paths)
     violations_json = json.dumps(session.violations)
+    clarifications_json = json.dumps(session.clarifications)
+    suggestions_json = json.dumps(session.suggestions)
+    blockers_json = json.dumps(session.blockers)
+    retrieval_query_json = json.dumps(session.retrieval_query)
     with _conn() as conn:
         conn.execute(
             """
             INSERT INTO planning_sessions
                 (session_id, status, chat_history, implementation_plan, inferred_nodes,
-                 session_folder_structure, deleted_paths, violations, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
+                 session_folder_structure, deleted_paths, violations,
+                 clarifications, suggestions, blockers, retrieval_query, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (session_id) DO UPDATE SET
                 status                   = EXCLUDED.status,
                 chat_history             = EXCLUDED.chat_history,
@@ -81,6 +86,10 @@ def save_session(session: PlanningSession) -> None:
                 session_folder_structure = EXCLUDED.session_folder_structure,
                 deleted_paths            = EXCLUDED.deleted_paths,
                 violations               = EXCLUDED.violations,
+                clarifications           = EXCLUDED.clarifications,
+                suggestions              = EXCLUDED.suggestions,
+                blockers                 = EXCLUDED.blockers,
+                retrieval_query          = EXCLUDED.retrieval_query,
                 updated_at               = NOW()
             """,
             (
@@ -92,6 +101,10 @@ def save_session(session: PlanningSession) -> None:
                 session_fs_json,
                 deleted_paths_json,
                 violations_json,
+                clarifications_json,
+                suggestions_json,
+                blockers_json,
+                retrieval_query_json,
             ),
         )
         conn.commit()
@@ -117,5 +130,9 @@ def _row_to_session(row: dict) -> PlanningSession:
         session_folder_structure=row.get("session_folder_structure") or [],
         deleted_paths=row.get("deleted_paths") or [],
         violations=row.get("violations") or [],
+        clarifications=row.get("clarifications") or [],
+        suggestions=row.get("suggestions") or [],
+        blockers=row.get("blockers") or [],
+        retrieval_query=row.get("retrieval_query") or {},
         status=row.get("status", "planning"),
     )

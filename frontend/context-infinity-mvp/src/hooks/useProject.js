@@ -6,6 +6,8 @@ export function useProject() {
   const [projectBrief, setProjectBrief] = useState('');
   const [folderStructure, setFolderStructure] = useState([]);
   const [actualFolderStructure, setActualFolderStructure] = useState([]);
+  const [inputTokens, setInputTokens] = useState(0);
+  const [outputTokens, setOutputTokens] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -18,6 +20,8 @@ export function useProject() {
         setProjectBrief(info.project_brief || '');
         setFolderStructure(info.folder_structure || []);
         setActualFolderStructure(info.actual_folder_structure || []);
+        setInputTokens(info.input_tokens_consumed || 0);
+        setOutputTokens(info.output_tokens_consumed || 0);
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
@@ -66,6 +70,7 @@ export function useProject() {
 
   return {
     projectPath, projectBrief, folderStructure, actualFolderStructure,
+    inputTokens, outputTokens,
     loading, saving, syncing, error,
     setProjectPath, setProjectBrief,
     savePath, saveBrief, syncFolders,
