@@ -24,6 +24,7 @@ from .prompt_builder import (
 )
 from .prompt_logger import log_prompt
 from .tool_executor import TOOL_SCHEMAS, execute_tool
+from .violation_checker import check_violations
 from ai_adapters.factory import get_adapter
 
 # Safety cap: stop the tool-calling loop after this many iterations
@@ -75,6 +76,9 @@ async def run_planner_agent(session_id: str, user_message: str) -> str:
     adapter = get_adapter()
     messages = [{"role": "user", "content": user_message}]
 
+    plan_before = dict(session.implementation_plan)
+    nodes_before = {n.get("title"): n for n in session.inferred_nodes}
+
     final_text = None
     for _ in range(_MAX_TOOL_ITERATIONS):
         final_text, tool_calls = await adapter.chat_with_tools(
@@ -118,8 +122,41 @@ async def run_planner_agent(session_id: str, user_message: str) -> str:
     if not final_text:
         final_text = "Done. The plan and decisions have been updated for this turn."
 
-    # Step 5: persist the assistant's final response
-    # Re-fetch session because tools may have mutated it since step 1
+    # Step 5: check for decision violations in changed plan sections and nodes
+    session = get_session(session_id)
+    plan_after = session.implementation_plan
+    changed = {
+        k: v for k, v in plan_after.items()
+        if k not in plan_before or plan_before[k] != v
+    }
+    changed_nodes = [
+        n for n in session.inferred_nodes
+        if n.get("title") not in nodes_before or nodes_before[n["title"]] != n
+    ]
+
+    if changed or changed_nodes:
+        session.violations = await check_violations(changed, changed_nodes, session.inferred_nodes)
+    else:
+        session.violations = []
+
+    # Mark risky plan sections and decision nodes based on violations
+    for v in session.violations:
+        sid = v.get("change_section")
+        if sid and sid in session.implementation_plan:
+            session.implementation_plan[sid]["risky"] = True
+            session.implementation_plan[sid]["violation_reason"] = v.get("explanation", "")
+
+        node_title = v.get("violated_node_title")
+        if node_title:
+            for node in session.inferred_nodes:
+                if node.get("title") == node_title:
+                    node["risky"] = True
+                    node["confidence"] = 0.3
+
+    save_session(session)
+
+    # Step 6: persist the assistant's final response
+    # Re-fetch session because violation check may have mutated it
     session = get_session(session_id)
     session.chat_history.append(ChatEntry(role="assistant", content=final_text))
     save_session(session)

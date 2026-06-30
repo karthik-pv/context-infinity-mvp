@@ -121,6 +121,9 @@ CREATE TABLE planning_sessions (
     -- Paths explicitly removed via modify_folder_structure tool
     deleted_paths JSONB NOT NULL DEFAULT '[]',
 
+    -- Decision violations detected in the last planning turn
+    violations JSONB NOT NULL DEFAULT '[]',
+
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -128,6 +131,7 @@ CREATE TABLE planning_sessions (
 -- Migration for existing databases
 ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS session_folder_structure JSONB NOT NULL DEFAULT '[]';
 ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS deleted_paths JSONB NOT NULL DEFAULT '[]';
+ALTER TABLE planning_sessions ADD COLUMN IF NOT EXISTS violations JSONB NOT NULL DEFAULT '[]';
 
 
 -- =====================================================

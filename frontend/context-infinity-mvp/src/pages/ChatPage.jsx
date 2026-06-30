@@ -1,16 +1,26 @@
+import { useState, useEffect } from 'react';
 import { usePlanningSession } from '../hooks/usePlanningSession';
 import SessionsSidebar from '../components/chat/SessionsSidebar';
 import ChatPanel from '../components/chat/ChatPanel';
 import PlanPanel from '../components/chat/PlanPanel';
+import ViolationModal from '../components/chat/ViolationModal';
 
 export default function ChatPage() {
   const {
-    sessions, sessionId, messages, plan, nodes, folderStructure,
+    sessions, sessionId, messages, plan, nodes, folderStructure, violations,
     input, loading, initializing, finalized, error,
     bottomRef,
     setInput, createNew, switchToSession,
     handleSend, handleFinalize, handleKeyDown,
   } = usePlanningSession();
+
+  const [violationsDismissed, setViolationsDismissed] = useState(false);
+
+  useEffect(() => {
+    if (violations.length > 0) setViolationsDismissed(false);
+  }, [violations]);
+
+  const showViolations = violations.length > 0 && !violationsDismissed;
 
   if (initializing) {
     return (
@@ -44,6 +54,13 @@ export default function ChatPage() {
         nodeCount={nodes.length}
       />
       <PlanPanel plan={plan} nodes={nodes} folderStructure={folderStructure} />
+
+      {showViolations && (
+        <ViolationModal
+          violations={violations}
+          onClose={() => setViolationsDismissed(true)}
+        />
+      )}
     </div>
   );
 }

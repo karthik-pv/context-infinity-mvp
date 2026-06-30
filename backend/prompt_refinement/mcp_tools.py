@@ -52,6 +52,8 @@ def update_plan_section(session_id: str, section_id: str, content: str, target_f
     section["content"] = content
     if target_file is not None:
         section["target_file"] = target_file
+    section.pop("risky", None)
+    section.pop("violation_reason", None)
     _recompute_folder_structure(session)
     save_session(session)
     return {"ok": True, "section_id": section_id, "action": "updated"}
@@ -100,6 +102,9 @@ def add_decision_node(
     }
     node.update(resolve_artifact(node))
     session.inferred_nodes = merge_decision_nodes(session.inferred_nodes, [node])
+    for n in session.inferred_nodes:
+        if n.get("title") == title:
+            n.pop("risky", None)
     save_session(session)
     return {"ok": True, "title": title, "action": "added_or_updated", "target_file": target_file}
 
@@ -136,6 +141,7 @@ def update_decision_node(
     if tags is not None:
         node["tags"] = tags
         node.update(resolve_artifact(node))
+    node.pop("risky", None)
     save_session(session)
     return {"ok": True, "title": title, "action": "updated"}
 

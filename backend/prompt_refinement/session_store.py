@@ -65,13 +65,14 @@ def save_session(session: PlanningSession) -> None:
     nodes_json = json.dumps(session.inferred_nodes)
     session_fs_json = json.dumps(session.session_folder_structure)
     deleted_paths_json = json.dumps(session.deleted_paths)
+    violations_json = json.dumps(session.violations)
     with _conn() as conn:
         conn.execute(
             """
             INSERT INTO planning_sessions
                 (session_id, status, chat_history, implementation_plan, inferred_nodes,
-                 session_folder_structure, deleted_paths, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+                 session_folder_structure, deleted_paths, violations, updated_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
             ON CONFLICT (session_id) DO UPDATE SET
                 status                   = EXCLUDED.status,
                 chat_history             = EXCLUDED.chat_history,
@@ -79,6 +80,7 @@ def save_session(session: PlanningSession) -> None:
                 inferred_nodes           = EXCLUDED.inferred_nodes,
                 session_folder_structure = EXCLUDED.session_folder_structure,
                 deleted_paths            = EXCLUDED.deleted_paths,
+                violations               = EXCLUDED.violations,
                 updated_at               = NOW()
             """,
             (
@@ -89,6 +91,7 @@ def save_session(session: PlanningSession) -> None:
                 nodes_json,
                 session_fs_json,
                 deleted_paths_json,
+                violations_json,
             ),
         )
         conn.commit()
@@ -113,5 +116,6 @@ def _row_to_session(row: dict) -> PlanningSession:
         folder_structure=get_folder_structure(),
         session_folder_structure=row.get("session_folder_structure") or [],
         deleted_paths=row.get("deleted_paths") or [],
+        violations=row.get("violations") or [],
         status=row.get("status", "planning"),
     )

@@ -11,6 +11,7 @@ export function usePlanningSession() {
   const [plan, setPlan]           = useState({});
   const [nodes, setNodes]         = useState([]);
   const [folderStructure, setFolderStructure] = useState([]);
+  const [violations, setViolations] = useState([]);
   const [input, setInput]         = useState('');
   const [loading, setLoading]     = useState(false);
   const [initializing, setInit]   = useState(true);
@@ -24,6 +25,7 @@ export function usePlanningSession() {
     setPlan(session.implementation_plan || {});
     setNodes(session.inferred_nodes || []);
     setFolderStructure(session.session_folder_structure || []);
+    setViolations(session.violations || []);
     setFinalized(session.status === 'finalized');
     setError(null);
   }
@@ -73,6 +75,7 @@ export function usePlanningSession() {
       setPlan({});
       setNodes([]);
       setFolderStructure([]);
+      setViolations([]);
       setFinalized(false);
     } catch {
       setError('Could not start session — is the backend running?');
@@ -107,6 +110,7 @@ export function usePlanningSession() {
       setPlan(session.implementation_plan || {});
       setNodes(session.inferred_nodes || []);
       setFolderStructure(session.session_folder_structure || []);
+      setViolations(session.violations || []);
       updateSessionInList(sessionId, session.chat_history);
     } catch (err) {
       setMessages([...optimistic, { role: 'error', content: err.message }]);
@@ -134,7 +138,7 @@ export function usePlanningSession() {
   }
 
   return {
-    sessions, sessionId, messages, plan, nodes, folderStructure,
+    sessions, sessionId, messages, plan, nodes, folderStructure, violations,
     input, loading, initializing, finalized, error,
     bottomRef,
     setInput, createNew, switchToSession,

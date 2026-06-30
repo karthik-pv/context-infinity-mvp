@@ -47,11 +47,13 @@ export default function PlanPanel({ plan, nodes, folderStructure }) {
             Object.entries(plan).map(([key, value]) => {
               const content = typeof value === 'object' ? value.content : value;
               const targetFile = typeof value === 'object' ? value.target_file : null;
+              const risky = typeof value === 'object' && value.risky;
               return (
-                <div key={key} className="plan-section">
+                <div key={key} className={`plan-section${risky ? ' plan-section--risky' : ''}`}>
                   <div className="plan-section-id">{key.replace(/_/g, ' ')}</div>
                   {targetFile && <div className="plan-section-file">{targetFile}</div>}
                   <div className="plan-section-content">{content}</div>
+                  {risky && <div className="plan-section-risk">&#9888; Violates existing decision</div>}
                 </div>
               );
             })

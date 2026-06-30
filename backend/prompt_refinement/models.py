@@ -22,4 +22,5 @@ class PlanningSession(BaseModel):
     folder_structure: list[str] = []            # global, read-only during session
     session_folder_structure: list[str] = []    # session-scoped working copy
     deleted_paths: list[str] = []               # paths explicitly removed
+    violations: list[dict] = []                 # decision violations from last turn
     status: Literal["planning", "finalized"] = "planning"
