@@ -1,50 +1,177 @@
 """
-Planner Agent — tool-only state engine.
+Stage 1: Planner Agent — plan/folder mutations + clarifications/suggestions/blockers.
 
-The planner is NOT a chatbot. It emits only tool calls to mutate session state:
-  - batch_update          → plan sections, decision nodes, folder structure
-  - search_decisions      → get historical decisions from DB by file or tag
-  - request_clarification → questions for the UI
-  - emit_suggestions      → architecture suggestions for the UI
-  - emit_blockers         → critical blockers for the UI
+Input:
+  - current implementation plan (session-scoped)
+  - current folder structure
+  - current user prompt
+  - planner system prompt
 
-No prose response is ever produced. The UI renders all state changes.
+Output JSON:
+  {
+    plan_mutations: { add, update, delete },
+    folder_mutations: { add, remove, move },
+    clarifications: [],
+    suggestions: [],
+    blockers: []
+  }
 
-Output: PlannerOutput containing the session's plan, decisions, retrieval_query
-(for the orchestrator to fetch historical decisions), and token usage metrics.
+Responsibility:
+  - understand user intent
+  - mutate implementation plan
+  - mutate folder structure
+  - ask clarification questions
+  - emit optional suggestions / blockers
+
+Explicitly does NOT:
+  - extract decisions (Stage 2 handles this)
+  - retrieve historical context (Stage 3 handles this)
+  - perform violation checking (Stage 4 handles this)
 """
 import json
+import re
 from dataclasses import dataclass, field
 
 from prompt_refinement.session_store import get_session, save_session
-from prompt_refinement.models import ChatEntry
+from prompt_refinement.models import ChatEntry, PlanningSession
 from prompt_refinement.prompt_logger import log_prompt
-from prompt_refinement.tool_executor import TOOL_SCHEMAS, execute_tool
 from ai_adapters.factory import get_adapter
 
 from planner.context_retriever import get_relevant_context
 from planner.prompts import PLANNER_SYSTEM_PROMPT
 
-_MAX_TOOL_ITERATIONS = 10
-
 
 @dataclass
 class PlannerOutput:
-    """Result of a planner agent turn — no user-facing response text."""
-    implementation_plan: dict = field(default_factory=dict)
-    inferred_decisions: list = field(default_factory=list)
-    retrieval_query: dict = field(default_factory=dict)
+    """Result of Stage 1 — mutations + UI items + token usage."""
+    plan_mutations: dict = field(default_factory=dict)
+    folder_mutations: dict = field(default_factory=dict)
+    clarifications: list = field(default_factory=list)
+    suggestions: list = field(default_factory=list)
+    blockers: list = field(default_factory=list)
     usage: dict = field(default_factory=lambda: {"input_tokens": 0, "output_tokens": 0})
+
+
+def _extract_json(raw: str) -> dict | None:
+    """Robustly extract a JSON object from LLM output."""
+    if not raw:
+        return None
+    text = raw.strip()
+
+    fence_match = re.search(r"```(?:json)?\s*\n?(.*?)\n?```", text, re.DOTALL)
+    if fence_match:
+        text = fence_match.group(1).strip()
+
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
+        except json.JSONDecodeError:
+            pass
+
+    return None
+
+
+def _recompute_folder_structure(session: PlanningSession) -> None:
+    """Add plan target_files to session_folder_structure, remove deleted_paths."""
+    paths = set(session.session_folder_structure)
+    for section in session.implementation_plan.values():
+        if isinstance(section, dict):
+            target = section.get("target_file", "")
+            if target and target != ".":
+                paths.add(target)
+    paths -= set(session.deleted_paths)
+    session.session_folder_structure = sorted(paths)
+
+
+def _apply_plan_mutations(session: PlanningSession, mutations: dict) -> None:
+    """Apply add/update/delete plan mutations to session.implementation_plan."""
+    plan = session.implementation_plan
+
+    for sid in (mutations.get("delete") or []):
+        plan.pop(sid, None)
+
+    for sec in (mutations.get("update") or []):
+        sid = sec.get("section_id", "")
+        if not sid:
+            continue
+        if sid in plan:
+            plan[sid]["content"] = sec.get("content", plan[sid].get("content", ""))
+            if sec.get("target_file") is not None:
+                plan[sid]["target_file"] = sec["target_file"]
+            plan[sid].pop("risky", None)
+            plan[sid].pop("violation_reason", None)
+        else:
+            plan[sid] = {
+                "content": sec.get("content", ""),
+                "target_file": sec.get("target_file", "."),
+            }
+
+    for sec in (mutations.get("add") or []):
+        sid = sec.get("section_id", "")
+        if not sid:
+            continue
+        plan[sid] = {
+            "content": sec.get("content", ""),
+            "target_file": sec.get("target_file", "."),
+        }
+
+    _recompute_folder_structure(session)
+
+
+def _apply_folder_mutations(session: PlanningSession, mutations: dict) -> None:
+    """Apply add/remove/move folder mutations to session."""
+    paths = set(session.session_folder_structure)
+    deleted = set(session.deleted_paths)
+
+    for path in (mutations.get("add") or []):
+        if path and path != ".":
+            paths.add(path)
+            deleted.discard(path)
+
+    for path in (mutations.get("remove") or []):
+        if path:
+            paths.discard(path)
+            deleted.add(path)
+
+    for move in (mutations.get("move") or []):
+        old = move.get("from", "")
+        new = move.get("to", "")
+        if not old or not new:
+            continue
+        # Update folder paths
+        updated = set()
+        for p in paths:
+            if p == old or p.startswith(old.rstrip("/") + "/"):
+                updated.add(new + p[len(old):])
+            else:
+                updated.add(p)
+        paths = updated
+        deleted.add(old)
+        # Update plan section target_files
+        for sec in session.implementation_plan.values():
+            if isinstance(sec, dict):
+                tf = sec.get("target_file", "")
+                if tf and (tf == old or tf.startswith(old.rstrip("/") + "/")):
+                    sec["target_file"] = new + tf[len(old):]
+
+    session.session_folder_structure = sorted(paths)
+    session.deleted_paths = sorted(deleted)
+    _recompute_folder_structure(session)
 
 
 async def run(session_id: str, user_message: str) -> PlannerOutput:
     """
-    Run the planner state engine for one turn.
+    Run Stage 1: Planner.
 
-    Returns PlannerOutput with plan, decisions, retrieval_query, and token usage.
-    Session state is mutated via tool calls and persisted through the existing
-    mcp_tools / session_store pipeline. No assistant message is appended to
-    chat_history — the planner produces no prose.
+    Returns PlannerOutput with mutations and token usage.
+    Session state is mutated and persisted.
     """
     session = get_session(session_id)
     if session is None:
@@ -52,91 +179,64 @@ async def run(session_id: str, user_message: str) -> PlannerOutput:
     if session.status == "finalized":
         raise ValueError("Session is already finalized")
 
-    # Persist user message and reset per-turn state before calling LLM
+    # Persist user message and reset per-turn state
     session.chat_history.append(ChatEntry(role="user", content=user_message))
     session.violations = []
     session.clarifications = []
     session.suggestions = []
     session.blockers = []
-    session.retrieval_query = {}
     save_session(session)
 
-    # Retrieve relevant context slices (NO historical decisions — planner doesn't see them)
-    context = get_relevant_context(user_message, session)
+    # Build context — plan + folders only (no decisions, no violations)
+    context = get_relevant_context(session)
 
-    # Build compact system prompt with full current state
-    system_prompt = PLANNER_SYSTEM_PROMPT.format(
-        session_id=session_id,
-        project_brief=json.dumps(context["project_brief"]),
-        folder_structure=json.dumps(context["folder_structure"]),
-        implementation_plan=json.dumps(context["implementation_plan"]),
-        inferred_decisions=json.dumps(context["inferred_decisions"]),
-        violations=json.dumps(context["violations"]),
-        user_message=user_message,
+    # Build system prompt: dynamic data first, then static rules with JSON schema
+    system_prompt = (
+        f"Session: {session_id}\n\n"
+        f"BRIEF: {json.dumps(context['project_brief'])}\n"
+        f"FOLDERS: {json.dumps(context['folder_structure'])}\n"
+        f"PLAN: {json.dumps(context['implementation_plan'])}\n"
+        f"USER: {user_message}\n\n"
+        f"{PLANNER_SYSTEM_PROMPT}"
     )
 
     log_prompt(session_id, system_prompt, [])
 
-    # Agent loop — tool calling.  Break after first iteration unless
-    # search_decisions was called (needs a follow-up to act on results).
+    # Single LLM call — no tool calling, JSON output
     adapter = get_adapter()
-    messages = [{"role": "user", "content": user_message}]
+    raw, usage = await adapter.chat(system_prompt)
 
-    total_input_tokens = 0
-    total_output_tokens = 0
+    parsed = _extract_json(raw)
+    if parsed is None:
+        print(f"[planner] WARNING: could not parse LLM response as JSON")
+        print(f"[planner] raw (first 500 chars): {raw[:500] if raw else '(empty)'}")
+        return PlannerOutput(usage=usage)
 
-    for i in range(_MAX_TOOL_ITERATIONS):
-        _, tool_calls, usage = await adapter.chat_with_tools(
-            system=system_prompt,
-            messages=messages,
-            tools=TOOL_SCHEMAS,
-        )
+    # Extract mutations and UI items
+    plan_mutations = parsed.get("plan_mutations", {})
+    folder_mutations = parsed.get("folder_mutations", {})
+    clarifications = parsed.get("clarifications", [])
+    suggestions = parsed.get("suggestions", [])
+    blockers = parsed.get("blockers", [])
 
-        total_input_tokens += usage.get("input_tokens", 0)
-        total_output_tokens += usage.get("output_tokens", 0)
+    # Apply plan mutations
+    _apply_plan_mutations(session, plan_mutations)
 
-        if not tool_calls:
-            break
+    # Apply folder mutations
+    _apply_folder_mutations(session, folder_mutations)
 
-        called_search = any(tc["name"] == "search_decisions" for tc in tool_calls)
+    # Store UI items on session
+    session.clarifications = clarifications
+    session.suggestions = suggestions
+    session.blockers = blockers
 
-        messages.append({
-            "role": "assistant",
-            "content": "",
-            "tool_calls": [
-                {
-                    "id": tc["id"],
-                    "type": "function",
-                    "function": {
-                        "name": tc["name"],
-                        "arguments": json.dumps(tc["input"]),
-                    },
-                }
-                for tc in tool_calls
-            ],
-        })
-
-        for tc in tool_calls:
-            result = execute_tool(tc["name"], tc["input"])
-            messages.append({
-                "role": "tool",
-                "tool_call_id": tc["id"],
-                "name": tc["name"],
-                "content": json.dumps(result),
-            })
-
-        # Only loop back if search_decisions was called — its results need
-        # a follow-up turn so the LLM can act on them.  All other tools
-        # (batch_update, emit_suggestions, etc.) are fire-and-forget.
-        if not called_search:
-            break
-
-    # Read final session state (mutated by tool calls)
-    session = get_session(session_id)
+    save_session(session)
 
     return PlannerOutput(
-        implementation_plan=dict(session.implementation_plan),
-        inferred_decisions=list(session.inferred_nodes),
-        retrieval_query=dict(session.retrieval_query),
-        usage={"input_tokens": total_input_tokens, "output_tokens": total_output_tokens},
+        plan_mutations=plan_mutations,
+        folder_mutations=folder_mutations,
+        clarifications=clarifications,
+        suggestions=suggestions,
+        blockers=blockers,
+        usage=usage,
     )

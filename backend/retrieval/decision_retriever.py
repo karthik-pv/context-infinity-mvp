@@ -1,16 +1,18 @@
 """
-Decision retrieval layer — tiered scoring retrieval of historical decisions.
+Stage 3: Historical Retrieval — non-LLM tiered scoring retrieval.
 
-Given the planner's affected_files and relevant_tags, queries the DB for historical
-decision nodes and ranks them by a tiered scoring system:
+Input:
+  - updated decisions from Stage 2
+  - current project folder structure
+  - tag metadata
 
+Retrieval strategy (tiered scoring):
   Tier 1 — exact file match        (score 10)
   Tier 2 — parent folder match     (score 5)
   Tier 3 — tag match               (score 2)
+  Tier 4 — keyword match (fallback) (score 1)
 
-Only the top-K decisions are returned, keeping token usage sublinear with project
-complexity.  The planner agent never sees these — they go directly to the violation
-checker agent.
+No LLM involved. Pure DB retrieval.
 """
 from db_layer.postgres_access import get_decisions
 
@@ -20,6 +22,7 @@ TOP_K = 10
 _SCORE_EXACT_FILE = 10
 _SCORE_FOLDER_MATCH = 5
 _SCORE_TAG_MATCH = 2
+_SCORE_KEYWORD_MATCH = 1
 
 
 def _parent_folders(file_path: str) -> list[str]:
@@ -35,14 +38,25 @@ def retrieve(affected_files: list[str], relevant_tags: list[str]) -> list[dict]:
     """
     Retrieve historical decisions relevant to the affected files and tags.
 
-    Returns a list of RetrievedDecision dicts sorted by score (descending),
-    limited to TOP_K results.
+    Args:
+        affected_files: target_files from the updated session decisions.
+        relevant_tags: tags from the updated session decisions.
+
+    Returns a list of dicts sorted by score (descending), limited to TOP_K.
+    Each dict includes the decision id (for violation checker linking).
     """
     all_decisions = get_decisions()
     if not all_decisions:
         return []
 
     tags_lower = {t.lower() for t in relevant_tags}
+    # Collect keywords from affected file paths for fallback matching
+    keywords = set()
+    for f in affected_files:
+        for part in f.replace("/", " ").replace(".", " ").lower().split():
+            if len(part) > 2:
+                keywords.add(part)
+
     scored: list[tuple[int, dict]] = []
 
     for node in all_decisions:
@@ -65,6 +79,13 @@ def retrieve(affected_files: list[str], relevant_tags: list[str]) -> list[dict]:
         if tags_lower and node_tags:
             overlap = tags_lower & node_tags
             score += len(overlap) * _SCORE_TAG_MATCH
+
+        # Tier 4 — keyword match (fallback)
+        if score == 0 and keywords:
+            title_words = set(node.get("title", "").lower().split())
+            decision_words = set(node.get("decision", "").lower().split())
+            if keywords & (title_words | decision_words):
+                score += _SCORE_KEYWORD_MATCH
 
         if score > 0:
             scored.append((score, node))

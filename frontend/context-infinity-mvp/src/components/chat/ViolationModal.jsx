@@ -9,7 +9,7 @@ export default function ViolationModal({ violations, onClose, onReprocess }) {
   const [saveError, setSaveError] = useState(null);
   const [reprocessing, setReprocessing] = useState(false);
 
-  // Fetch full decision details for each violated decision
+  // Fetch full decision details for each violated historical decision
   useEffect(() => {
     const ids = violations
       .map(v => v.violated_decision_id)
@@ -97,7 +97,7 @@ export default function ViolationModal({ violations, onClose, onReprocess }) {
 
         <div className="modal-body">
           <p className="violation-intro">
-            The following plan changes violate existing architectural decisions.
+            The following new decisions violate existing architectural decisions.
             Edit a violated decision to resolve the conflict, then reprocess to check again.
           </p>
 
@@ -111,15 +111,16 @@ export default function ViolationModal({ violations, onClose, onReprocess }) {
             const decisionId = v.violated_decision_id;
             const decision = decisionId ? decisionCache[decisionId] : null;
             const isEditing = editingId === decisionId;
+            const vType = v.type || v.violation_type || 'direct';
 
             return (
               <div key={i} className="violation-card">
                 <div className="violation-card-header">
-                  <span className={`violation-type violation-type--${v.violation_type}`}>
-                    {v.violation_type}
+                  <span className={`violation-type violation-type--${vType}`}>
+                    {vType}
                   </span>
                   <span className="violation-decision-title">
-                    {v.violated_decision_title}
+                    {decision?.title || v.violated_decision_title || 'Unknown decision'}
                   </span>
                   {v.severity && (
                     <span className={`violation-severity violation-severity--${v.severity}`}>
@@ -128,14 +129,21 @@ export default function ViolationModal({ violations, onClose, onReprocess }) {
                   )}
                 </div>
 
-                <div className="violation-section">
-                  <span className="violation-label">Violating change:</span>
-                  <span className="violation-change-section">
-                    {v.change_section || v.violated_node_title || '—'}
-                  </span>
-                </div>
+                {v.violating_node_title && (
+                  <div className="violation-section">
+                    <span className="violation-label">Violating decision:</span>
+                    <span className="violation-change-section">{v.violating_node_title}</span>
+                  </div>
+                )}
 
                 <p className="violation-explanation">{v.explanation}</p>
+
+                {v.suggested_resolution && (
+                  <div className="violation-resolution">
+                    <span className="violation-label">Suggested resolution:</span>
+                    <p className="violation-resolution-text">{v.suggested_resolution}</p>
+                  </div>
+                )}
 
                 {decision && !isEditing && (
                   <div className="violation-decision-detail">

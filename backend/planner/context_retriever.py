@@ -1,17 +1,15 @@
 """
-Context retriever — sends the full current session state to the LLM every turn.
+Context retriever for Stage 1 (Planner).
 
-Full state (compact form) is sent every prompt so the LLM always sees consistent
-data.  This eliminates broken state where a folder rename updates one slice but
-leaves stale references in another — the LLM sees everything and can update all
-references in a single batch_update call.
+Sends only the implementation plan and folder structure to the planner LLM.
+The planner does NOT see decisions or violations — those are handled by
+separate stages (Stage 2: decision extraction, Stage 4: violation checking).
 """
-from prompt_refinement.models import PlanningSession
 from db_layer.project_db import get_project_info
 
 
-def get_relevant_context(user_message: str, session: PlanningSession) -> dict:
-    """Return the full current state for the system prompt."""
+def get_relevant_context(session) -> dict:
+    """Return the current plan + folder state for the planner system prompt."""
     project_info = get_project_info()
 
     return {
@@ -25,14 +23,4 @@ def get_relevant_context(user_message: str, session: PlanningSession) -> dict:
             }
             for sid, sec in session.implementation_plan.items()
         ],
-        "inferred_decisions": [
-            {
-                "title": n.get("title", "?"),
-                "decision": n.get("decision", ""),
-                "target_file": n.get("target_file", "?"),
-                "tags": n.get("tags", []),
-            }
-            for n in session.inferred_nodes
-        ],
-        "violations": session.violations,
     }
