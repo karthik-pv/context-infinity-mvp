@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   fetchPlanningSessions, fetchPlanningSession,
-  createPlanningSession, sendPlanningMessage, finalizePlanningSession,
+  createPlanningSession, deletePlanningSession, sendPlanningMessage, finalizePlanningSession,
   reprocessSession, updateSessionNode,
 } from '../data/api';
 
@@ -50,12 +50,19 @@ export function usePlanningSession() {
     async function init() {
       try {
         const { sessions: list } = await fetchPlanningSessions();
-        setSessions(list);
         if (list.length > 0) {
+          setSessions(list);
           const session = await fetchPlanningSession(list[0].session_id);
           applySession(session);
         } else {
-          await createNew();
+          // No sessions exist — create one, then fetch the fresh list
+          await createPlanningSession();
+          const { sessions: freshList } = await fetchPlanningSessions();
+          setSessions(freshList);
+          if (freshList.length > 0) {
+            const session = await fetchPlanningSession(freshList[0].session_id);
+            applySession(session);
+          }
         }
       } catch {
         setError('Could not reach backend — is it running?');
@@ -101,6 +108,32 @@ export function usePlanningSession() {
       applySession(session);
     } catch {
       setError('Could not load session.');
+    }
+  }
+
+  async function handleDelete(id) {
+    try {
+      await deletePlanningSession(id);
+      const { sessions: freshList } = await fetchPlanningSessions();
+      setSessions(freshList);
+      // If we deleted the active session, switch to the first remaining one
+      if (id === sessionId) {
+        if (freshList.length > 0) {
+          const session = await fetchPlanningSession(freshList[0].session_id);
+          applySession(session);
+        } else {
+          // No sessions left — create a new one
+          await createPlanningSession();
+          const { sessions: newList } = await fetchPlanningSessions();
+          setSessions(newList);
+          if (newList.length > 0) {
+            const session = await fetchPlanningSession(newList[0].session_id);
+            applySession(session);
+          }
+        }
+      }
+    } catch {
+      setError('Could not delete session.');
     }
   }
 
@@ -185,7 +218,7 @@ export function usePlanningSession() {
     clarifications, suggestions, blockers,
     input, loading, initializing, finalized, error,
     bottomRef,
-    setInput, createNew, switchToSession,
+    setInput, createNew, switchToSession, handleDelete,
     handleSend, handleFinalize, handleKeyDown,
     handleReprocess, handleUpdateNode,
   };

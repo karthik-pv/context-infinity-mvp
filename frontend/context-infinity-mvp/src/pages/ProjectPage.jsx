@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useProject } from '../hooks/useProject';
-import FolderTree from '../components/project/FolderTree';
+import FolderStructurePanel from '../components/chat/FolderStructurePanel';
 import DriftModal from '../components/project/DriftModal';
 
 function formatTokens(n) {
@@ -139,13 +139,13 @@ export default function ProjectPage() {
           <div className="project-tree-half">
             <div className="project-tree-half-label">Planned</div>
             <div className="project-tree-container">
-              <FolderTree paths={folderStructure} />
+              <FolderStructurePanel paths={folderStructure} />
             </div>
           </div>
           <div className="project-tree-half">
             <div className="project-tree-half-label">Actual</div>
             <div className="project-tree-container">
-              <FolderTree paths={actualFolderStructure} />
+              <FolderStructurePanel paths={actualFolderStructure} />
             </div>
           </div>
         </div>

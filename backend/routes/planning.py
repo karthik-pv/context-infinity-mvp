@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from prompt_refinement.session_store import create_session, get_session, save_session, list_sessions
+from prompt_refinement.session_store import create_session, get_session, save_session, list_sessions, delete_session
 from prompt_refinement.planner import process_chat_message
 from orchestrator.planning_pipeline import reprocess_violations
 from db_layer.planning_db import save_finalized_nodes
@@ -85,6 +85,15 @@ def create_planning_session():
     return {"session_id": session.session_id}
 
 
+@router.delete("/session/{session_id}")
+def delete_planning_session(session_id: str):
+    """Delete a planning session."""
+    deleted = delete_session(session_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return {"deleted": True}
+
+
 @router.post("/chat")
 async def planning_chat(body: PlanningChatRequest):
     """
@@ -119,7 +128,8 @@ async def reprocess_session(body: FinalizeRequest):
 def update_node(body: UpdateNodeRequest):
     """
     Update an inferred decision node in the current session.
-    Uses original_title (if provided) to find the node, then applies all fields.
+    Uses original_title (if provided) to find the node, then replaces the entire
+    node uniformly so title, decision, and all fields stay in sync.
     Returns the full updated session state.
     """
     session = get_session(body.session_id)
@@ -127,25 +137,28 @@ def update_node(body: UpdateNodeRequest):
         raise HTTPException(status_code=404, detail="Session not found")
 
     lookup_title = body.original_title or body.title
-    node = next((n for n in session.inferred_nodes if n.get("title") == lookup_title), None)
-    if node is None:
+    idx = next((i for i, n in enumerate(session.inferred_nodes) if n.get("title") == lookup_title), None)
+    if idx is None:
         raise HTTPException(status_code=400, detail=f"Node '{lookup_title}' not found")
 
-    if body.title:
-        node["title"] = body.title
-    if body.decision is not None:
-        node["decision"] = body.decision
-    if body.rationale is not None:
-        node["rationale"] = body.rationale
-    if body.tradeoffs is not None:
-        node["tradeoffs"] = body.tradeoffs
-    if body.confidence is not None:
-        node["confidence"] = max(0.0, min(1.0, body.confidence))
-    if body.target_file is not None:
-        node["target_file"] = body.target_file
-    if body.tags is not None:
-        node["tags"] = body.tags
-    node.pop("risky", None)
+    existing = session.inferred_nodes[idx]
+
+    # Build a fresh node — every field is set from the request or falls back to existing
+    new_node = {
+        "title": body.title or existing.get("title", ""),
+        "decision": body.decision if body.decision is not None else existing.get("decision", ""),
+        "rationale": body.rationale if body.rationale is not None else existing.get("rationale", ""),
+        "tradeoffs": body.tradeoffs if body.tradeoffs is not None else existing.get("tradeoffs", []),
+        "confidence": max(0.0, min(1.0, body.confidence)) if body.confidence is not None else existing.get("confidence", 0.8),
+        "tags": body.tags if body.tags is not None else existing.get("tags", []),
+        "target_file": body.target_file if body.target_file is not None else existing.get("target_file", "."),
+    }
+    # Re-resolve artifact placement
+    from prompt_refinement.artifact_resolver import resolve_artifact
+    new_node.update(resolve_artifact(new_node))
+
+    # Replace in-place
+    session.inferred_nodes[idx] = new_node
 
     save_session(session)
     return session.model_dump()

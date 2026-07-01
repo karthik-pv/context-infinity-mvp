@@ -10,6 +10,155 @@
   align-items: flex-start;
 }
 
+/* ── Context Page: sidebar + decisions layout ────────────────────────── */
+
+.ctx-shell {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ctx-tree-sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border-folder);
+  min-height: 0;
+  overflow: hidden;
+  background: rgba(10, 14, 26, 0.5);
+}
+
+.ctx-tree-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-folder);
+  flex-shrink: 0;
+}
+
+.ctx-tree-title {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.ctx-tree-clear {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--accent);
+  background: rgba(108, 99, 255, 0.08);
+  border: 1px solid rgba(108, 99, 255, 0.25);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.ctx-tree-clear:hover {
+  background: rgba(108, 99, 255, 0.16);
+}
+
+.ctx-tree-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 6px;
+}
+
+.ctx-tree-empty {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.45;
+  text-align: center;
+  padding: 20px 8px;
+}
+
+.ctx-tree-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text);
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ctx-tree-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ctx-tree-item--selected {
+  background: rgba(108, 99, 255, 0.12);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+}
+
+.ctx-tree-icon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.ctx-tree-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right: hierarchical canvas panel */
+
+.ctx-canvas-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ctx-canvas-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-folder);
+  flex-shrink: 0;
+}
+
+.ctx-canvas-title {
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--mono);
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.ctx-canvas-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.ctx-decisions-empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  opacity: 0.45;
+  text-align: center;
+  padding: 40px 8px;
+}
+
 /* Folder node */
 
 .folder-node {

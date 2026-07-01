@@ -118,6 +118,17 @@ def list_sessions() -> list[PlanningSession]:
     return [_row_to_session(row) for row in rows]
 
 
+def delete_session(session_id: str) -> bool:
+    """Delete a session from the DB. Returns True if a row was deleted."""
+    with _conn() as conn:
+        result = conn.execute(
+            "DELETE FROM planning_sessions WHERE session_id = %s",
+            (session_id,),
+        )
+        conn.commit()
+        return result.rowcount > 0
+
+
 def _row_to_session(row: dict) -> PlanningSession:
     chat_data = row.get("chat_history", [])
     chat_history = [ChatEntry(**e) for e in chat_data]

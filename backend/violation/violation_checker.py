@@ -96,7 +96,7 @@ def _format_historical(decisions: list[dict]) -> str:
 async def run(
     new_decisions: list[dict],
     historical_decisions: list[dict],
-) -> tuple[list[dict], dict]:
+) -> tuple[list[dict], dict, str, str]:
     """
     Run Stage 4: Violation Checker.
 
@@ -105,10 +105,10 @@ async def run(
         historical_decisions: Retrieved historical decisions from DB (from Stage 3).
 
     Returns:
-        (violations, usage) where usage is {"input_tokens": int, "output_tokens": int}
+        (violations, usage, prompt, raw_response)
     """
     if not historical_decisions:
-        return [], {"input_tokens": 0, "output_tokens": 0}
+        return [], {"input_tokens": 0, "output_tokens": 0}, "", ""
 
     prompt = VIOLATION_CHECKER_PROMPT.format(
         new_decisions=_format_decisions(new_decisions),
@@ -122,6 +122,6 @@ async def run(
     if parsed is None:
         print(f"[violation_checker] WARNING: could not parse LLM response as JSON")
         print(f"[violation_checker] raw (first 500 chars): {raw[:500] if raw else '(empty)'}")
-        return [], usage
+        return [], usage, prompt, raw or ""
 
-    return parsed.get("violations", []), usage
+    return parsed.get("violations", []), usage, prompt, raw or ""

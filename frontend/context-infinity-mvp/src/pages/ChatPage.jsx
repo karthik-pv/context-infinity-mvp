@@ -8,17 +8,14 @@ import ViolationModal from '../components/chat/ViolationModal';
 export default function ChatPage() {
   const {
     sessions, sessionId, messages, plan, nodes, folderStructure, violations,
-    clarifications, suggestions, blockers,
     input, loading, initializing, finalized, error,
     bottomRef,
-    setInput, createNew, switchToSession,
+    setInput, createNew, switchToSession, handleDelete,
     handleSend, handleFinalize, handleKeyDown,
     handleReprocess, handleUpdateNode,
   } = usePlanningSession();
 
-  const [dismissedAtMsgCount, setDismissedAtMsgCount] = useState(null);
-  const msgCount = messages.filter(m => m.role === 'user').length;
-  const showViolations = violations.length > 0 && dismissedAtMsgCount !== msgCount;
+  const [showViolationModal, setShowViolationModal] = useState(false);
 
   if (initializing) {
     return (
@@ -37,6 +34,7 @@ export default function ChatPage() {
         sessionId={sessionId}
         onCreate={createNew}
         onSwitch={switchToSession}
+        onDelete={handleDelete}
       />
       <ChatPanel
         messages={messages}
@@ -45,9 +43,8 @@ export default function ChatPage() {
         input={input}
         error={error}
         bottomRef={bottomRef}
-        clarifications={clarifications}
-        suggestions={suggestions}
-        blockers={blockers}
+        violations={violations}
+        onShowViolations={() => setShowViolationModal(true)}
         onInputChange={e => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         onSend={handleSend}
@@ -63,10 +60,10 @@ export default function ChatPage() {
         onReprocess={handleReprocess}
       />
 
-      {showViolations && (
+      {showViolationModal && violations.length > 0 && (
         <ViolationModal
           violations={violations}
-          onClose={() => setDismissedAtMsgCount(msgCount)}
+          onClose={() => setShowViolationModal(false)}
           onReprocess={handleReprocess}
         />
       )}

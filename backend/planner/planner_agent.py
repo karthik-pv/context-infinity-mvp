@@ -34,7 +34,6 @@ from dataclasses import dataclass, field
 
 from prompt_refinement.session_store import get_session, save_session
 from prompt_refinement.models import ChatEntry, PlanningSession
-from prompt_refinement.prompt_logger import log_prompt
 from ai_adapters.factory import get_adapter
 
 from planner.context_retriever import get_relevant_context
@@ -50,6 +49,8 @@ class PlannerOutput:
     suggestions: list = field(default_factory=list)
     blockers: list = field(default_factory=list)
     usage: dict = field(default_factory=lambda: {"input_tokens": 0, "output_tokens": 0})
+    prompt: str = ""
+    raw_response: str = ""
 
 
 def _extract_json(raw: str) -> dict | None:
@@ -92,6 +93,8 @@ def _recompute_folder_structure(session: PlanningSession) -> None:
 
 def _apply_plan_mutations(session: PlanningSession, mutations: dict) -> None:
     """Apply add/update/delete plan mutations to session.implementation_plan."""
+    if not mutations:
+        return
     plan = session.implementation_plan
 
     for sid in (mutations.get("delete") or []):
@@ -124,9 +127,17 @@ def _apply_plan_mutations(session: PlanningSession, mutations: dict) -> None:
 
     _recompute_folder_structure(session)
 
+    # Debug: confirm plan state after mutation
+    print(f"[planner] _apply_plan_mutations: {len(mutations.get('add') or [])} add, "
+          f"{len(mutations.get('update') or [])} update, "
+          f"{len(mutations.get('delete') or [])} delete -> "
+          f"{len(plan)} total sections: {list(plan.keys())}")
+
 
 def _apply_folder_mutations(session: PlanningSession, mutations: dict) -> None:
     """Apply add/remove/move folder mutations to session."""
+    if not mutations:
+        return
     paths = set(session.session_folder_structure)
     deleted = set(session.deleted_paths)
 
@@ -165,6 +176,12 @@ def _apply_folder_mutations(session: PlanningSession, mutations: dict) -> None:
     session.deleted_paths = sorted(deleted)
     _recompute_folder_structure(session)
 
+    # Debug: confirm folder structure after mutation
+    print(f"[planner] _apply_folder_mutations: {len(mutations.get('add') or [])} add, "
+          f"{len(mutations.get('remove') or [])} remove, "
+          f"{len(mutations.get('move') or [])} move -> "
+          f"{len(session.session_folder_structure)} total paths")
+
 
 async def run(session_id: str, user_message: str) -> PlannerOutput:
     """
@@ -200,8 +217,6 @@ async def run(session_id: str, user_message: str) -> PlannerOutput:
         f"{PLANNER_SYSTEM_PROMPT}"
     )
 
-    log_prompt(session_id, system_prompt, [])
-
     # Single LLM call — no tool calling, JSON output
     adapter = get_adapter()
     raw, usage = await adapter.chat(system_prompt)
@@ -210,7 +225,10 @@ async def run(session_id: str, user_message: str) -> PlannerOutput:
     if parsed is None:
         print(f"[planner] WARNING: could not parse LLM response as JSON")
         print(f"[planner] raw (first 500 chars): {raw[:500] if raw else '(empty)'}")
-        return PlannerOutput(usage=usage)
+        return PlannerOutput(usage=usage, prompt=system_prompt, raw_response=raw or "")
+
+    # Debug: log parsed structure for diagnosis
+    print(f"[planner] parsed keys: {list(parsed.keys())}")
 
     # Extract mutations and UI items
     plan_mutations = parsed.get("plan_mutations", {})
@@ -219,16 +237,47 @@ async def run(session_id: str, user_message: str) -> PlannerOutput:
     suggestions = parsed.get("suggestions", [])
     blockers = parsed.get("blockers", [])
 
+    # Type checks — ensure mutations are dicts, not strings or None
+    if not isinstance(plan_mutations, dict):
+        print(f"[planner] WARNING: plan_mutations is {type(plan_mutations).__name__}, expected dict. Resetting to {{}}.")
+        plan_mutations = {}
+    if not isinstance(folder_mutations, dict):
+        print(f"[planner] WARNING: folder_mutations is {type(folder_mutations).__name__}, expected dict. Resetting to {{}}.")
+        folder_mutations = {}
+
+    # Debug: log mutation details
+    print(f"[planner] plan_mutations: add={len(plan_mutations.get('add') or [])}, "
+          f"update={len(plan_mutations.get('update') or [])}, "
+          f"delete={len(plan_mutations.get('delete') or [])}")
+    print(f"[planner] folder_mutations: add={len(folder_mutations.get('add') or [])}, "
+          f"remove={len(folder_mutations.get('remove') or [])}, "
+          f"move={len(folder_mutations.get('move') or [])}")
+
     # Apply plan mutations
     _apply_plan_mutations(session, plan_mutations)
 
     # Apply folder mutations
     _apply_folder_mutations(session, folder_mutations)
 
-    # Store UI items on session
+    # Debug: log session state after mutations applied
+    print(f"[planner] session.implementation_plan sections: {list(session.implementation_plan.keys())}")
+    print(f"[planner] session.session_folder_structure ({len(session.session_folder_structure)} paths): "
+          f"{session.session_folder_structure[:10]}{'...' if len(session.session_folder_structure) > 10 else ''}")
+
+    # Store UI items on session (current turn — for immediate UI render)
     session.clarifications = clarifications
     session.suggestions = suggestions
     session.blockers = blockers
+
+    # Append assistant message to chat_history so the full conversation
+    # (including clarifications/suggestions/blockers) persists across turns.
+    # The content is a JSON string the frontend can parse to render output bubbles.
+    assistant_content = json.dumps({
+        "clarifications": clarifications,
+        "suggestions": suggestions,
+        "blockers": blockers,
+    })
+    session.chat_history.append(ChatEntry(role="assistant", content=assistant_content))
 
     save_session(session)
 
@@ -239,4 +288,6 @@ async def run(session_id: str, user_message: str) -> PlannerOutput:
         suggestions=suggestions,
         blockers=blockers,
         usage=usage,
+        prompt=system_prompt,
+        raw_response=raw or "",
     )

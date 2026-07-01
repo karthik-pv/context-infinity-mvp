@@ -7,24 +7,59 @@ export function buildTree(paths) {
     typeMap[ref] = type;
   });
 
-  // Infer implicit parent folders
-  Object.keys(typeMap).forEach(ref => {
-    const parts = ref.split('/');
+  // Normalize: ensure folder refs end with '/'
+  const normalized = {};
+  Object.entries(typeMap).forEach(([ref, type]) => {
+    const normalizedRef =
+      type === 'folder' && !ref.endsWith('/') ? ref + '/' : ref;
+    normalized[normalizedRef] = type;
+  });
+
+  // Infer missing parent folders
+  Object.keys(normalized).forEach(ref => {
+    const parts = ref.replace(/\/$/, '').split('/');
+
     for (let i = 1; i < parts.length; i++) {
-      const parent = parts.slice(0, i).join('/');
-      if (!typeMap[parent]) typeMap[parent] = 'folder';
+      const parent = parts.slice(0, i).join('/') + '/';
+      if (!normalized[parent]) {
+        normalized[parent] = 'folder';
+      }
     }
   });
 
-  const allPaths = Object.keys(typeMap).sort();
+  const allPaths = Object.keys(normalized).sort();
 
-  function buildChildren(parentPath) {
-    const prefix = parentPath ? parentPath + '/' : '';
+  function buildChildren(parentPath = '') {
+    // parentPath for folders already includes trailing '/'
+    const prefix = parentPath || '';
+
     return allPaths
-      .filter(p => p.startsWith(prefix) && !p.slice(prefix.length).includes('/'))
+      .filter(p => {
+        if (p === parentPath) return false;
+        if (!p.startsWith(prefix)) return false;
+
+        const remainder = p.slice(prefix.length);
+        if (!remainder) return false;
+
+        // Remove trailing slash before checking nesting depth
+        const trimmed = remainder.replace(/\/$/, '');
+
+        // Only direct children allowed
+        return !trimmed.includes('/');
+      })
       .map(p => {
-        const node = { type: typeMap[p], name: p.split('/').pop(), path: p };
-        if (typeMap[p] === 'folder') node.children = buildChildren(p);
+        const name = p.replace(/\/$/, '').split('/').pop();
+
+        const node = {
+          type: normalized[p],
+          name,
+          path: p,
+        };
+
+        if (normalized[p] === 'folder') {
+          node.children = buildChildren(p);
+        }
+
         return node;
       });
   }

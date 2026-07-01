@@ -1,4 +1,4 @@
-export default function SessionsSidebar({ sessions, sessionId, onCreate, onSwitch }) {
+export default function SessionsSidebar({ sessions, sessionId, onCreate, onSwitch, onDelete }) {
   return (
     <div className="planner-sessions-sidebar">
       <div className="planner-panel-header">
@@ -12,7 +12,7 @@ export default function SessionsSidebar({ sessions, sessionId, onCreate, onSwitc
           <p className="planner-sessions-empty">No sessions yet</p>
         )}
         {sessions.map(s => (
-          <button
+          <div
             key={s.session_id}
             className={`planner-session-item${s.session_id === sessionId ? ' planner-session-item--active' : ''}`}
             onClick={() => onSwitch(s.session_id)}
@@ -27,8 +27,15 @@ export default function SessionsSidebar({ sessions, sessionId, onCreate, onSwitc
               {s.status === 'finalized' && (
                 <span className="planner-session-done">done</span>
               )}
+              <button
+                className="planner-session-delete"
+                onClick={(e) => { e.stopPropagation(); onDelete(s.session_id); }}
+                title="Delete session"
+              >
+                &#x2715;
+              </button>
             </div>
-          </button>
+          </div>
         ))}
       </div>
     </div>

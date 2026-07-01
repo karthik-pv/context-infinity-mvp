@@ -90,27 +90,29 @@ def _apply_decision_mutations(session, mutations: dict) -> None:
     for title in (mutations.get("delete") or []):
         nodes = [n for n in nodes if n.get("title") != title]
 
-    # Update (merge into existing)
+    # Update — replace the entire node uniformly to keep title/decision in sync
     for node_data in (mutations.get("update") or []):
         title = node_data.get("title", "")
         if not title:
             continue
         existing = next((n for n in nodes if n.get("title") == title), None)
         if existing:
-            if node_data.get("decision") is not None:
-                existing["decision"] = node_data["decision"]
-            if node_data.get("rationale") is not None:
-                existing["rationale"] = node_data["rationale"]
-            if node_data.get("tradeoffs") is not None:
-                existing["tradeoffs"] = node_data["tradeoffs"]
-            if node_data.get("confidence") is not None:
-                existing["confidence"] = max(0.0, min(1.0, node_data["confidence"]))
-            if node_data.get("tags") is not None:
-                existing["tags"] = node_data["tags"]
-            if node_data.get("artifact_refs") is not None:
-                refs = node_data["artifact_refs"]
-                existing["target_file"] = refs[0] if refs else existing.get("target_file", ".")
-            existing.pop("risky", None)
+            # Build a fresh node from the LLM output, preserving only artifact resolution
+            refs = node_data.get("artifact_refs") or []
+            target_file = refs[0] if refs else existing.get("target_file", ".")
+            new_node = {
+                "title": title,
+                "decision": node_data.get("decision", existing.get("decision", "")),
+                "rationale": node_data.get("rationale", existing.get("rationale", "")),
+                "tradeoffs": node_data.get("tradeoffs") if node_data.get("tradeoffs") is not None else existing.get("tradeoffs", []),
+                "confidence": max(0.0, min(1.0, node_data.get("confidence", existing.get("confidence", 0.8)))),
+                "tags": node_data.get("tags") if node_data.get("tags") is not None else existing.get("tags", []),
+                "target_file": target_file,
+            }
+            new_node.update(resolve_artifact(new_node))
+            # Replace the old node in-place
+            idx = nodes.index(existing)
+            nodes[idx] = new_node
 
     # Add (merge with dedup)
     add_nodes = []
@@ -138,7 +140,7 @@ def _apply_decision_mutations(session, mutations: dict) -> None:
     session.inferred_nodes = nodes
 
 
-async def run(session_id: str, user_message: str, plan_mutations: dict) -> tuple[list[dict], dict]:
+async def run(session_id: str, user_message: str, plan_mutations: dict) -> tuple[list[dict], dict, str, str]:
     """
     Run Stage 2: Decision Extraction.
 
@@ -148,7 +150,7 @@ async def run(session_id: str, user_message: str, plan_mutations: dict) -> tuple
         plan_mutations: The plan mutations from Stage 1.
 
     Returns:
-        (updated_decisions, usage) where usage is {"input_tokens": int, "output_tokens": int}
+        (updated_decisions, usage, prompt, raw_response)
     """
     session = get_session(session_id)
     if session is None:
@@ -167,10 +169,10 @@ async def run(session_id: str, user_message: str, plan_mutations: dict) -> tuple
     if parsed is None:
         print(f"[decision_extractor] WARNING: could not parse LLM response as JSON")
         print(f"[decision_extractor] raw (first 500 chars): {raw[:500] if raw else '(empty)'}")
-        return list(session.inferred_nodes), usage
+        return list(session.inferred_nodes), usage, prompt, raw or ""
 
     decision_mutations = parsed.get("decision_mutations", {})
     _apply_decision_mutations(session, decision_mutations)
     save_session(session)
 
-    return list(session.inferred_nodes), usage
+    return list(session.inferred_nodes), usage, prompt, raw or ""

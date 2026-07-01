@@ -55,6 +55,12 @@ export async function createPlanningSession() {
   return res.json();
 }
 
+export async function deletePlanningSession(sessionId) {
+  const res = await fetch(`${PLANNER_BASE}/session/${sessionId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`API error: ${res.status}`);
+  return res.json();
+}
+
 export async function sendPlanningMessage(sessionId, message) {
   const res = await fetch(`${PLANNER_BASE}/chat`, {
     method: 'POST',
