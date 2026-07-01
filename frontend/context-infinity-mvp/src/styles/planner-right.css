@@ -408,3 +408,93 @@
   padding-left: 12px;
   border-left: 2px solid var(--border-file);
 }
+
+/* Violation severity badge */
+
+.violation-severity {
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.violation-severity--high {
+  color: var(--confidence-low);
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.violation-severity--medium {
+  color: var(--confidence-med);
+  background: rgba(251, 191, 36, 0.12);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.violation-severity--low {
+  color: var(--text-dim);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-folder);
+}
+
+/* Violated decision detail section */
+
+.violation-decision-detail {
+  margin-top: 4px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-folder);
+  border-radius: 6px;
+}
+
+.violation-decision-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.violation-decision-detail-header .btn-edit {
+  margin-left: auto;
+}
+
+.violation-decision-rationale {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-style: italic;
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.violation-decision-loading {
+  font-size: 11px;
+  color: var(--text-dim);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Violation edit form (inline) */
+
+.violation-edit-form {
+  margin-top: 4px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-folder);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.violation-reprocessing {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-style: italic;
+}

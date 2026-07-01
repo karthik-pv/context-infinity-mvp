@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { usePlanningSession } from '../hooks/usePlanningSession';
 import SessionsSidebar from '../components/chat/SessionsSidebar';
 import ChatPanel from '../components/chat/ChatPanel';
@@ -8,19 +8,17 @@ import ViolationModal from '../components/chat/ViolationModal';
 export default function ChatPage() {
   const {
     sessions, sessionId, messages, plan, nodes, folderStructure, violations,
+    clarifications, suggestions, blockers,
     input, loading, initializing, finalized, error,
     bottomRef,
     setInput, createNew, switchToSession,
     handleSend, handleFinalize, handleKeyDown,
+    handleReprocess, handleUpdateNode,
   } = usePlanningSession();
 
-  const [violationsDismissed, setViolationsDismissed] = useState(false);
-
-  useEffect(() => {
-    if (violations.length > 0) setViolationsDismissed(false);
-  }, [violations]);
-
-  const showViolations = violations.length > 0 && !violationsDismissed;
+  const [dismissedAtMsgCount, setDismissedAtMsgCount] = useState(null);
+  const msgCount = messages.filter(m => m.role === 'user').length;
+  const showViolations = violations.length > 0 && dismissedAtMsgCount !== msgCount;
 
   if (initializing) {
     return (
@@ -47,18 +45,29 @@ export default function ChatPage() {
         input={input}
         error={error}
         bottomRef={bottomRef}
+        clarifications={clarifications}
+        suggestions={suggestions}
+        blockers={blockers}
         onInputChange={e => setInput(e.target.value)}
         onKeyDown={handleKeyDown}
         onSend={handleSend}
         onFinalize={handleFinalize}
         nodeCount={nodes.length}
       />
-      <PlanPanel plan={plan} nodes={nodes} folderStructure={folderStructure} />
+      <PlanPanel
+        plan={plan}
+        nodes={nodes}
+        folderStructure={folderStructure}
+        finalized={finalized}
+        onUpdateNode={handleUpdateNode}
+        onReprocess={handleReprocess}
+      />
 
       {showViolations && (
         <ViolationModal
           violations={violations}
-          onClose={() => setViolationsDismissed(true)}
+          onClose={() => setDismissedAtMsgCount(msgCount)}
+          onReprocess={handleReprocess}
         />
       )}
     </div>

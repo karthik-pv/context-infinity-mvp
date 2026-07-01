@@ -252,3 +252,73 @@
   background: rgba(86, 207, 178, 0.16);
   border-color: var(--teal);
 }
+
+/* ── Planner output (clarifications, suggestions, blockers) ─────────────── */
+
+.planner-output-text {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.planner-output-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.planner-output-icon {
+  font-size: 13px;
+  flex-shrink: 0;
+  color: var(--accent2);
+  line-height: 1.5;
+}
+
+.planner-output-icon--suggestion { color: var(--confidence-med); }
+.planner-output-icon--blocker { color: var(--confidence-low); }
+
+.planner-output-item--blocker {
+  color: var(--confidence-low);
+}
+
+.planner-output-item strong {
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* Clarification options */
+
+.planner-clarification {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-folder);
+  margin-bottom: 4px;
+}
+
+.planner-clarification:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.planner-clarification-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 21px;
+}
+
+.planner-clarification-option {
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--accent2);
+  background: rgba(0, 212, 255, 0.08);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  border-radius: 4px;
+  padding: 3px 8px;
+  line-height: 1.4;
+}

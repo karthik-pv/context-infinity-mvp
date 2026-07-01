@@ -73,6 +73,7 @@ def retrieve(affected_files: list[str], relevant_tags: list[str]) -> list[dict]:
 
     return [
         {
+            "id": node.get("id", ""),
             "title": node.get("title", ""),
             "decision": node.get("decision", ""),
             "rationale": node.get("rationale", ""),

@@ -277,7 +277,40 @@
   padding: 16px 20px;
 }
 
-.project-summary-text {
+.project-summary-empty {
+  font-size: 12px;
+  color: var(--text-dim);
+  opacity: 0.45;
+  text-align: center;
+  padding: 40px 8px;
+  user-select: none;
+  line-height: 1.6;
+}
+
+/* Brief bubbles */
+
+.brief-bubbles {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.brief-bubble {
+  background: var(--surface2);
+  border: 1px solid var(--border-card);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s;
+}
+
+.brief-bubble:hover {
+  border-color: rgba(108, 99, 255, 0.3);
+}
+
+.brief-bubble-text {
   font-size: 13px;
   line-height: 1.6;
   color: var(--text);
@@ -286,13 +319,101 @@
   font-family: var(--font);
 }
 
-.project-summary-empty {
-  font-size: 12px;
+.brief-bubble-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brief-bubble-edit {
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--mono);
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  background: rgba(108, 99, 255, 0.1);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 5px;
+  padding: 2px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.brief-bubble-edit:hover {
+  background: rgba(108, 99, 255, 0.22);
+  border-color: rgba(108, 99, 255, 0.55);
+}
+
+.brief-bubble-delete {
+  font-size: 11px;
   color: var(--text-dim);
-  opacity: 0.45;
-  text-align: center;
-  padding: 40px 8px;
-  user-select: none;
+  background: none;
+  border: 1px solid var(--border-folder);
+  border-radius: 5px;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+  line-height: 1.4;
+}
+
+.brief-bubble-delete:hover:not(:disabled) {
+  color: var(--confidence-low);
+  border-color: rgba(248, 113, 113, 0.3);
+}
+
+.brief-bubble-delete:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.brief-bubble--editing {
+  border-color: var(--accent);
+  background: rgba(108, 99, 255, 0.04);
+}
+
+.brief-bubble-textarea {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-folder);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font);
+  line-height: 1.5;
+  padding: 8px 10px;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.brief-bubble-textarea:focus {
+  border-color: var(--accent);
+  background: rgba(108, 99, 255, 0.05);
+}
+
+.brief-bubble--editing .brief-bubble-actions {
+  justify-content: flex-end;
+}
+
+/* Add brief button */
+
+.project-add-brief-btn {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--accent);
+  background: rgba(108, 99, 255, 0.08);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 5px;
+  padding: 3px 10px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.project-add-brief-btn:hover {
+  background: rgba(108, 99, 255, 0.16);
+  border-color: var(--accent);
 }
 
 /* Shared panel header */
@@ -349,4 +470,50 @@
   color: var(--confidence-med);
   background: rgba(251, 191, 36, 0.06);
   border: 1px solid rgba(251, 191, 36, 0.15);
+}
+
+/* Drift list items with action buttons */
+
+.drift-list-item--with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.drift-add-btn {
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--accent);
+  background: rgba(108, 99, 255, 0.1);
+  border: 1px solid rgba(108, 99, 255, 0.3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.drift-add-btn:hover:not(:disabled) {
+  background: rgba(108, 99, 255, 0.22);
+  border-color: rgba(108, 99, 255, 0.55);
+}
+
+.drift-add-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.drift-added-badge {
+  font-size: 9px;
+  font-family: var(--mono);
+  font-weight: 600;
+  color: var(--confidence-high);
+  background: rgba(52, 211, 153, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  border-radius: 4px;
+  padding: 2px 8px;
+  flex-shrink: 0;
 }

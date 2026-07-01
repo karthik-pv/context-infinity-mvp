@@ -8,6 +8,10 @@ architectural decisions at three levels: direct, indirect, tangential.
 This is a separate agent from the planner — the planner never sees historical
 decisions, and this agent never generates plan content.  This separation ensures
 the violation check is impartial and the planner's token footprint stays small.
+
+Uses tool calling (report_violations) instead of JSON-in-prose so the output
+structure is guaranteed.  Falls back to JSON extraction if the model emits prose
+instead of a tool call.
 """
 import json
 import re
@@ -57,24 +61,58 @@ authorization is a violation.
 Only report ACTUAL violations where the change genuinely conflicts with a decision
 or its underlying rationale. Do NOT report mere "related" items without a real conflict.
 
-=== RESPONSE FORMAT ===
-
-Respond with ONLY a JSON object, no other text, no markdown fences:
-{{
-  "violations": [
-    {{
-      "violated_decision_title": "title of the existing decision being violated",
-      "change_section": "section_id of the violating plan section, or null",
-      "violated_node_title": "title of the violating new decision node, or null",
-      "violation_type": "direct" | "indirect" | "tangential",
-      "severity": "high" | "medium" | "low",
-      "explanation": "detailed explanation of why this is a violation"
-    }}
-  ]
-}}
-
-If there are no violations, return: {{"violations": []}}
+Call the report_violations tool with your findings. Include the violated_decision_id
+(from the existing decisions list above) so the UI can link to the decision for editing.
+If there are no violations, call the tool with an empty violations array.
 """
+
+_VIOLATION_TOOL = {
+    "name": "report_violations",
+    "description": "Report all architectural violations found in the new changes.",
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "violations": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "violated_decision_id": {
+                            "type": "string",
+                            "description": "The 'id' field of the existing decision being violated, from the list above.",
+                        },
+                        "violated_decision_title": {
+                            "type": "string",
+                            "description": "Title of the existing decision being violated.",
+                        },
+                        "change_section": {
+                            "type": "string",
+                            "description": "section_id of the violating plan section, or null if none.",
+                        },
+                        "violated_node_title": {
+                            "type": "string",
+                            "description": "Title of the violating new decision node, or null if none.",
+                        },
+                        "violation_type": {
+                            "type": "string",
+                            "enum": ["direct", "indirect", "tangential"],
+                        },
+                        "severity": {
+                            "type": "string",
+                            "enum": ["high", "medium", "low"],
+                        },
+                        "explanation": {
+                            "type": "string",
+                            "description": "Detailed explanation of why this is a violation.",
+                        },
+                    },
+                    "required": ["violated_decision_title", "violation_type", "severity", "explanation"],
+                },
+            },
+        },
+        "required": ["violations"],
+    },
+}
 
 
 def _extract_json(raw: str) -> dict | None:
@@ -129,7 +167,8 @@ def _format_historical(decisions: list[dict]) -> str:
     if not decisions:
         return "(none found)"
     return "\n\n".join(
-        f"- Title: {d.get('title', '?')}\n"
+        f"- ID: {d.get('id', '?')}\n"
+        f"  Title: {d.get('title', '?')}\n"
         f"  Decision: {d.get('decision', '?')}\n"
         f"  Rationale: {d.get('rationale', '(none)')}\n"
         f"  Target file: {d.get('target_file', d.get('location', '?'))}\n"
@@ -160,12 +199,30 @@ async def run(
     )
 
     adapter = get_adapter()
-    raw, usage = await adapter.chat(prompt)
+
+    # Primary path: tool calling (guaranteed structure)
+    _, tool_calls, usage = await adapter.chat_with_tools(
+        system=prompt,
+        messages=[{"role": "user", "content": "Analyze the changes and call report_violations with your findings."}],
+        tools=[_VIOLATION_TOOL],
+    )
+
+    if tool_calls:
+        for tc in tool_calls:
+            if tc["name"] == "report_violations":
+                return tc["input"].get("violations", []), usage
+
+    # Fallback: try to parse JSON from prose (older models that don't support tools)
+    raw, fallback_usage = await adapter.chat(prompt)
+    merged_usage = {
+        "input_tokens": usage.get("input_tokens", 0) + fallback_usage.get("input_tokens", 0),
+        "output_tokens": usage.get("output_tokens", 0) + fallback_usage.get("output_tokens", 0),
+    }
 
     parsed = _extract_json(raw)
     if parsed is None:
         print(f"[violation_checker] WARNING: could not parse LLM response as JSON")
         print(f"[violation_checker] raw response (first 500 chars): {raw[:500] if raw else '(empty)'}")
-        return [], usage
+        return [], merged_usage
 
-    return parsed.get("violations", []), usage
+    return parsed.get("violations", []), merged_usage

@@ -95,3 +95,68 @@ async def run_pipeline(session_id: str, user_message: str) -> None:
 
     # No assistant message appended — the planner is a tool-only state engine.
     # The UI renders plan, decisions, clarifications, suggestions, blockers, violations.
+
+
+async def reprocess_violations(session_id: str) -> None:
+    """
+    Re-run Stage 2 + Stage 3 only (retrieval + violation check) without calling
+    the planner again.  Used after a user edits a historical decision or an
+    inferred node to see if violations have changed.
+
+    Session state is mutated and persisted.  No return value.
+    """
+    session = get_session(session_id)
+    if session is None:
+        raise ValueError(f"Session '{session_id}' not found")
+
+    # Stage 2: re-derive affected files + tags from current session state
+    affected_files = [
+        sec.get("target_file", "")
+        for sec in session.implementation_plan.values()
+        if sec.get("target_file", "") and sec.get("target_file", "") != "."
+    ]
+    relevant_tags: set[str] = set()
+    for node in session.inferred_nodes:
+        relevant_tags.update(node.get("tags", []))
+    retrieved = retrieve_decisions(affected_files, list(relevant_tags))
+
+    # Stage 3: violation checker
+    violations, violation_usage = await run_violation_check(
+        session.implementation_plan,
+        session.inferred_nodes,
+        retrieved,
+    )
+
+    # Apply risky flags from violations to session
+    session.violations = violations
+
+    for v in violations:
+        sid = v.get("change_section")
+        if sid and sid in session.implementation_plan:
+            session.implementation_plan[sid]["risky"] = True
+            session.implementation_plan[sid]["violation_reason"] = v.get("explanation", "")
+
+        node_title = v.get("violated_node_title")
+        if node_title:
+            for node in session.inferred_nodes:
+                if node.get("title") == node_title:
+                    node["risky"] = True
+                    node["confidence"] = 0.3
+
+    save_session(session)
+
+    # Log token metrics
+    metrics = {
+        "planner_input_tokens": 0,
+        "planner_output_tokens": 0,
+        "retrieval_count": len(retrieved),
+        "violation_input_tokens": violation_usage.get("input_tokens", 0),
+        "violation_output_tokens": violation_usage.get("output_tokens", 0),
+    }
+    log_token_usage(session_id, metrics)
+
+    # Accumulate token usage into project_info
+    total_input = metrics["violation_input_tokens"]
+    total_output = metrics["violation_output_tokens"]
+    if total_input > 0 or total_output > 0:
+        add_token_usage(total_input, total_output)

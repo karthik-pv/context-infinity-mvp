@@ -1,5 +1,16 @@
-export default function DriftModal({ drift, onClose }) {
+import { useState } from 'react';
+
+export default function DriftModal({ drift, onClose, onAddPath }) {
   const { missing, extra } = drift;
+  const [addedPaths, setAddedPaths] = useState(new Set());
+  const [adding, setAdding] = useState(false);
+
+  async function handleAdd(path) {
+    setAdding(true);
+    await onAddPath(path);
+    setAddedPaths(prev => new Set([...prev, path]));
+    setAdding(false);
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -28,7 +39,22 @@ export default function DriftModal({ drift, onClose }) {
             <div className="modal-section">
               <h3>On disk but not planned ({extra.length})</h3>
               <ul className="drift-list drift-list--extra">
-                {extra.map(p => <li key={p}>{p}</li>)}
+                {extra.map(p => (
+                  <li key={p} className="drift-list-item--with-action">
+                    <span>{p}</span>
+                    {addedPaths.has(p) ? (
+                      <span className="drift-added-badge">✓ Added</span>
+                    ) : (
+                      <button
+                        className="drift-add-btn"
+                        onClick={() => handleAdd(p)}
+                        disabled={adding}
+                      >
+                        {adding ? '…' : 'Add to Planned'}
+                      </button>
+                    )}
+                  </li>
+                ))}
               </ul>
             </div>
           )}

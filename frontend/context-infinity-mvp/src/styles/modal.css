@@ -26,6 +26,10 @@
   overflow: hidden;
 }
 
+.modal-panel--wide {
+  max-width: 680px;
+}
+
 .modal-close {
   position: absolute;
   top: 12px;

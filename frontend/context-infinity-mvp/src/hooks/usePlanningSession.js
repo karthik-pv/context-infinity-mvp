@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   fetchPlanningSessions, fetchPlanningSession,
   createPlanningSession, sendPlanningMessage, finalizePlanningSession,
+  reprocessSession, updateSessionNode,
 } from '../data/api';
 
 export function usePlanningSession() {
@@ -12,6 +13,9 @@ export function usePlanningSession() {
   const [nodes, setNodes]         = useState([]);
   const [folderStructure, setFolderStructure] = useState([]);
   const [violations, setViolations] = useState([]);
+  const [clarifications, setClarifications] = useState([]);
+  const [suggestions, setSuggestions] = useState([]);
+  const [blockers, setBlockers] = useState([]);
   const [input, setInput]         = useState('');
   const [loading, setLoading]     = useState(false);
   const [initializing, setInit]   = useState(true);
@@ -26,6 +30,9 @@ export function usePlanningSession() {
     setNodes(session.inferred_nodes || []);
     setFolderStructure(session.session_folder_structure || []);
     setViolations(session.violations || []);
+    setClarifications(session.clarifications || []);
+    setSuggestions(session.suggestions || []);
+    setBlockers(session.blockers || []);
     setFinalized(session.status === 'finalized');
     setError(null);
   }
@@ -57,11 +64,11 @@ export function usePlanningSession() {
       }
     }
     init();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, clarifications, suggestions, blockers]);
 
   async function createNew() {
     setInit(true);
@@ -76,6 +83,9 @@ export function usePlanningSession() {
       setNodes([]);
       setFolderStructure([]);
       setViolations([]);
+      setClarifications([]);
+      setSuggestions([]);
+      setBlockers([]);
       setFinalized(false);
     } catch {
       setError('Could not start session — is the backend running?');
@@ -111,11 +121,44 @@ export function usePlanningSession() {
       setNodes(session.inferred_nodes || []);
       setFolderStructure(session.session_folder_structure || []);
       setViolations(session.violations || []);
+      setClarifications(session.clarifications || []);
+      setSuggestions(session.suggestions || []);
+      setBlockers(session.blockers || []);
       updateSessionInList(sessionId, session.chat_history);
     } catch (err) {
       setMessages([...optimistic, { role: 'error', content: err.message }]);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleReprocess() {
+    if (!sessionId || finalized) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const session = await reprocessSession(sessionId);
+      setPlan(session.implementation_plan || {});
+      setNodes(session.inferred_nodes || []);
+      setViolations(session.violations || []);
+    } catch (err) {
+      setError(`Reprocess failed: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleUpdateNode(nodeData) {
+    if (!sessionId || finalized) return null;
+    setError(null);
+    try {
+      const session = await updateSessionNode(sessionId, nodeData);
+      setNodes(session.inferred_nodes || []);
+      setPlan(session.implementation_plan || {});
+      return session;
+    } catch (err) {
+      setError(`Update failed: ${err.message}`);
+      return null;
     }
   }
 
@@ -139,9 +182,11 @@ export function usePlanningSession() {
 
   return {
     sessions, sessionId, messages, plan, nodes, folderStructure, violations,
+    clarifications, suggestions, blockers,
     input, loading, initializing, finalized, error,
     bottomRef,
     setInput, createNew, switchToSession,
     handleSend, handleFinalize, handleKeyDown,
+    handleReprocess, handleUpdateNode,
   };
 }

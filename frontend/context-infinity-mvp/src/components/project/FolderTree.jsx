@@ -29,7 +29,7 @@ function renderNode(node, depth) {
 
 function buildTree(paths) {
   const typeMap = {};
-  paths.forEach(p => { typeMap[p] = 'file'; });
+  paths.forEach(p => { typeMap[p] = p.endsWith('/') ? 'folder' : 'file'; });
 
   Object.keys(typeMap).forEach(p => {
     const parts = p.split('/');

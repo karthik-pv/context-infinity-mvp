@@ -120,3 +120,46 @@ def add_token_usage(input_tokens: int, output_tokens: int) -> None:
             (input_tokens, output_tokens),
         )
         conn.commit()
+
+
+def update_brief_entry(index: int, text: str) -> list[str]:
+    """Update a specific entry in the project_brief array by 0-based index."""
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE project_info SET project_brief[%s] = %s, updated_at = NOW() WHERE id = 1",
+            (index + 1, text),  # Postgres arrays are 1-indexed
+        )
+        conn.commit()
+    return get_project_info().get("project_brief", [])
+
+
+def add_brief_entry(text: str) -> list[str]:
+    """Append a new entry to the project_brief array."""
+    with _conn() as conn:
+        conn.execute(
+            "UPDATE project_info SET "
+            "  project_brief = array_append(COALESCE(project_brief, '{}'), %s), "
+            "  updated_at = NOW() "
+            "WHERE id = 1",
+            (text,),
+        )
+        conn.commit()
+    return get_project_info().get("project_brief", [])
+
+
+def delete_brief_entry(index: int) -> list[str]:
+    """Remove an entry from the project_brief array by 0-based index."""
+    with _conn() as conn:
+        # Postgres arrays are 1-indexed; slice around the element to remove it
+        conn.execute(
+            "UPDATE project_info SET "
+            "  project_brief = array_cat("
+            "    COALESCE(project_brief[1:%s], '{}'),"
+            "    COALESCE(project_brief[%s:], '{}')"
+            "  ), "
+            "  updated_at = NOW() "
+            "WHERE id = 1",
+            (index, index + 2),
+        )
+        conn.commit()
+    return get_project_info().get("project_brief", [])

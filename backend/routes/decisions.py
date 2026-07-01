@@ -2,6 +2,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 from db_layer.postgres_access import get_decisions, get_artifact_paths, get_decision_by_id, update_decision_by_id
+from db_layer.project_db import add_token_usage
 from ai_adapters.factory import get_adapter
 
 router = APIRouter()
@@ -52,5 +53,6 @@ def decision_update(decision_id: str, body: DecisionUpdate):
 @router.post("/v1/chat")
 async def chat(body: ChatMessage):
     adapter = get_adapter()
-    reply, _ = await adapter.chat(body.message)
+    reply, usage = await adapter.chat(body.message)
+    add_token_usage(usage.get("input_tokens", 0), usage.get("output_tokens", 0))
     return {"reply": reply}

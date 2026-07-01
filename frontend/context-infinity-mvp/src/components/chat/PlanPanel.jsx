@@ -3,7 +3,7 @@ import NodeCard from './NodeCard';
 import NodeDetailModal from './NodeDetailModal';
 import FolderStructurePanel from './FolderStructurePanel';
 
-export default function PlanPanel({ plan, nodes, folderStructure }) {
+export default function PlanPanel({ plan, nodes, folderStructure, finalized, onUpdateNode, onReprocess }) {
   const [selectedNode, setSelectedNode] = useState(null);
   const [copied, setCopied] = useState(false);
 
@@ -92,7 +92,13 @@ export default function PlanPanel({ plan, nodes, folderStructure }) {
       </div>
 
       {selectedNode && (
-        <NodeDetailModal node={selectedNode} onClose={() => setSelectedNode(null)} />
+        <NodeDetailModal
+          node={selectedNode}
+          onClose={() => setSelectedNode(null)}
+          finalized={finalized}
+          onUpdateNode={onUpdateNode}
+          onReprocess={onReprocess}
+        />
       )}
 
     </div>
