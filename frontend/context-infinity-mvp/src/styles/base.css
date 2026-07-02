@@ -1,0 +1,41 @@
+/* ── Reset & Global Variables ────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #0c1020;
+  --surface:      #111827;
+  --surface2:     #1e2a3a;
+  --border-folder: #2e3a52;
+  --border-file:   #3b5278;
+  --border-card:   #334260;
+  --text:         #e2e6ff;
+  --text-dim:     #7a80a8;
+  --accent:       #6c63ff;
+  --accent2:      #00d4ff;
+  --teal:         #56cfb2;
+  --blue:         #6c9eff;
+  --purple:       #a78bfa;
+  --confidence-high: #34d399;
+  --confidence-med:  #fbbf24;
+  --confidence-low:  #f87171;
+  --drop-glow:    rgba(86, 207, 178, 0.18);
+  --drop-border:  #56cfb2;
+  --radius:       8px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+html, body {
+  height: 100%;
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+}

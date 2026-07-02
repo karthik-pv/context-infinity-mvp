@@ -1,0 +1,15 @@
+{
+  "ai_provider": "fireworks",
+  "anthropic": {
+    "model": "claude-opus-4-8",
+    "max_tokens": 1024
+  },
+  "openai": {
+    "model": "gpt-4o",
+    "max_tokens": 1024
+  },
+  "fireworks": {
+    "model": "accounts/fireworks/models/deepseek-v4-flash",
+    "max_tokens": 8192
+  }
+}

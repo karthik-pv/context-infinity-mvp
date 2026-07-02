@@ -1,0 +1,6 @@
+ref_frontend/
+venv/
+.env
+__pycache__/
+.opencode
+logs/

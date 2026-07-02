@@ -1,0 +1,13 @@
+/* ── Context Infinity MVP — Style Entry Point ────────────────────────── */
+/* All styles are modularized under src/styles/ for maintainability.     */
+
+@import './styles/base.css';
+@import './styles/app-shell.css';
+@import './styles/canvas.css';
+@import './styles/decision-card.css';
+@import './styles/modal.css';
+@import './styles/modal-edit.css';
+@import './styles/planner-layout.css';
+@import './styles/planner-chat.css';
+@import './styles/planner-right.css';
+@import './styles/project.css';
