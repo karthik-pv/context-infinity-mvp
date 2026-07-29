@@ -31,10 +31,40 @@ Updated session state → UI renders plan, decisions, violations, clarifications
 |-------|------|-------|--------|
 | 1 — Planner | Yes | Plan + folders + user message | Plan mutations, folder mutations, clarifications, suggestions |
 | 2 — Decision Extractor | Yes | User message + plan changes + existing decisions | Decision mutations (add/update/delete) |
-| 3 — Retrieval | No | Decision target files + tags | Relevant historical decisions (tiered scoring) |
+| 3 — Retrieval | No | Decision target files + tags + session chat history | Relevant historical decisions (pluggable strategy) |
 | 4 — Violation Checker | Yes | New decisions + historical decisions | Violations with type, severity, suggested resolution |
 
 **Key design principle:** The planner never sees historical decisions. Violation checking is done by a separate LLM that compares new vs. old — keeping each prompt focused and impartial.
+
+### Pluggable Retrieval — `HistoricalRetriever` Interface
+
+Stage 3 is defined against an interface, not a concrete algorithm, so the retrieval strategy can be swapped without touching the pipeline:
+
+```
+backend/retrieval/
+  base.py                      → HistoricalRetriever (ABC) — the interface
+  tiered_scoring_retriever.py  → TieredScoringRetriever    — default strategy
+  chat_keyword_retriever.py    → ChatKeywordRetriever      — alternate strategy
+  factory.py                   → get_retriever() — reads config.json, returns an implementation
+```
+
+Every implementation satisfies one method:
+
+```python
+def retrieve(
+    self,
+    affected_files: list[str],   # target_files from the session's updated decisions
+    relevant_tags: list[str],    # tags from the session's updated decisions
+    chat_history: list[dict],    # the session's prompt history so far
+) -> list[dict]:                 # historical decisions, most relevant first
+```
+
+Implementations are free to use any subset of the inputs:
+
+- **`TieredScoringRetriever`** (default) — the original non-LLM scorer. Ranks decisions by exact file match (10) → parent folder match (5) → tag overlap (2) → keyword fallback (1). Ignores `chat_history`.
+- **`ChatKeywordRetriever`** — scores decisions by keyword overlap with the last 6 chat turns instead, ignoring `affected_files`/`relevant_tags` entirely. Included as a working proof that a second strategy can key off a completely different input and drop in cleanly.
+
+The active strategy is selected via `retrieval_strategy` in `config.json` (`"tiered_scoring"` or `"chat_keyword"`), read by `retrieval/factory.py::get_retriever()` — the same swap-via-config pattern used for LLM adapters. `orchestrator/planning_pipeline.py` only ever calls `get_retriever().retrieve(...)`; it has no knowledge of which strategy is behind the interface. Adding a new strategy (e.g. embedding-based retrieval) means writing one class that implements `HistoricalRetriever` and adding one branch to the factory — no pipeline changes required.
 
 ## Screenshots
 
@@ -60,5 +90,6 @@ Sync the planned folder structure against the actual filesystem. Anomalies (file
 
 - **Backend:** FastAPI, PostgreSQL, raw `psycopg` (no ORM)
 - **LLM Adapters:** Anthropic, OpenAI, Fireworks (swappable via config)
+- **Retrieval Strategy:** `HistoricalRetriever` interface — tiered scoring or chat-keyword, swappable via config
 - **Frontend:** React, Vite, dnd-kit (drag-and-drop for decision placement)
 - **Pipeline:** Hand-rolled async pipeline (no LangChain — 4 function calls in sequence)
