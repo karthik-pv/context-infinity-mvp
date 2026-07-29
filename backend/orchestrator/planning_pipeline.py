@@ -18,7 +18,7 @@ from db_layer.project_db import add_token_usage
 
 from planner.planner_agent import run as run_planner
 from planner.decision_extractor import run as run_decision_extractor
-from retrieval.decision_retriever import retrieve as retrieve_decisions
+from retrieval.factory import get_retriever
 from violation.violation_checker import run as run_violation_check
 from prompt_refinement.prompt_logger import get_prompt_number, log_stage
 
@@ -104,7 +104,9 @@ async def run_pipeline(session_id: str, user_message: str) -> None:
     relevant_tags: set[str] = set()
     for node in session.inferred_nodes:
         relevant_tags.update(node.get("tags", []))
-    retrieved = retrieve_decisions(affected_files, list(relevant_tags))
+    chat_history = [entry.model_dump() for entry in session.chat_history]
+    retriever = get_retriever()
+    retrieved = retriever.retrieve(affected_files, list(relevant_tags), chat_history)
 
     stage3_note = ""
     if not retrieved:
@@ -198,7 +200,9 @@ async def reprocess_violations(session_id: str) -> None:
     relevant_tags: set[str] = set()
     for node in session.inferred_nodes:
         relevant_tags.update(node.get("tags", []))
-    retrieved = retrieve_decisions(affected_files, list(relevant_tags))
+    chat_history = [entry.model_dump() for entry in session.chat_history]
+    retriever = get_retriever()
+    retrieved = retriever.retrieve(affected_files, list(relevant_tags), chat_history)
 
     stage3_note = ""
     if not retrieved:
